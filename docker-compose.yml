@@ -30,6 +30,18 @@ services:
       - "8080:8080"
     restart: unless-stopped
 
+  frontend:
+    build:
+      context: ./frontend
+      target: runtime
+    environment:
+      API_BASE_URL: ${API_BASE_URL:-http://localhost:8080}
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
   # Bonus: a second API process on :8081 sharing the same database.
   # docker compose --profile bonus up -d   (then ./scripts/two-process-race.sh)
   backend2:
@@ -58,6 +70,13 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+
+  # docker compose --profile tests run --rm --build frontend-tests
+  frontend-tests:
+    profiles: ["tests"]
+    build:
+      context: ./frontend
+      target: test
 
 volumes:
   pgdata:
