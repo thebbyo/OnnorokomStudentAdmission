@@ -130,6 +130,8 @@ public class AdmissionService(AdmissionDbContext db, AdmissionOptions options)
             default:
                 hold.Status = HoldStatus.CONFIRMED;
                 hold.ConfirmedAt = now;
+                // Admission numbers come from a sequence: unique and gap-tolerant, assigned once per admission.
+                hold.AdmissionNo = (await db.Database.SqlQueryRaw<long>("SELECT nextval('admission_no_seq') AS \"Value\"").ToListAsync()).Single();
                 await db.SaveChangesAsync();
                 break;
         }
@@ -216,7 +218,8 @@ public class AdmissionService(AdmissionDbContext db, AdmissionOptions options)
     }
 
     private static HoldView ToView(Hold hold, string className, DateTime dbNow) =>
-        new(hold.Id, hold.ClassId, className, hold.StudentId, EffectiveStatus(hold, dbNow), hold.ExpiresAt);
+        new(hold.Id, hold.ClassId, className, hold.StudentId, EffectiveStatus(hold, dbNow), hold.ExpiresAt,
+            hold.AdmissionNo, hold.ConfirmedAt);
 
     private static ApiException HoldNotFound() =>
         ApiException.NotFound(ErrorCodes.HoldNotFound, "No application exists with that id.");

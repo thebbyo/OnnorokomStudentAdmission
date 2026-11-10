@@ -11,5 +11,8 @@ public class Hold
     public DateTime ExpiresAt { get; set; }
     public DateTime? ConfirmedAt { get; set; }
     public DateTime? CancelledAt { get; set; }
+
+    /// <summary>Assigned once, on the first confirm, from a database sequence. Null until paid.</summary>
+    public long? AdmissionNo { get; set; }
     public SchoolClass Class { get; set; } = null!;
 }

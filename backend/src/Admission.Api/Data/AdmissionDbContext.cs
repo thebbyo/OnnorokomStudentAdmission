@@ -33,6 +33,8 @@ public class AdmissionDbContext(DbContextOptions<AdmissionDbContext> options) : 
             e.Property(x => x.ExpiresAt).HasColumnName("expires_at");
             e.Property(x => x.ConfirmedAt).HasColumnName("confirmed_at");
             e.Property(x => x.CancelledAt).HasColumnName("cancelled_at");
+            e.Property(x => x.AdmissionNo).HasColumnName("admission_no");
+            e.HasIndex(x => x.AdmissionNo).IsUnique().HasFilter("admission_no IS NOT NULL").HasDatabaseName("ux_holds_admission_no");
             e.HasOne(x => x.Class).WithMany().HasForeignKey(x => x.ClassId).OnDelete(DeleteBehavior.Restrict);
 
             // Second line of defence for rule 3: at most one active (HELD/CONFIRMED) hold per student per class.

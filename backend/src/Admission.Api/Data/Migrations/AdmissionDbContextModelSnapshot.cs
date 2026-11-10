@@ -29,6 +29,10 @@ namespace Admission.Api.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<long?>("AdmissionNo")
+                        .HasColumnType("bigint")
+                        .HasColumnName("admission_no");
+
                     b.Property<DateTime?>("CancelledAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("cancelled_at");
@@ -63,6 +67,11 @@ namespace Admission.Api.Data.Migrations
                         .HasColumnName("student_id");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AdmissionNo")
+                        .IsUnique()
+                        .HasDatabaseName("ux_holds_admission_no")
+                        .HasFilter("admission_no IS NOT NULL");
 
                     b.HasIndex("ExpiresAt")
                         .HasDatabaseName("ix_holds_expiring")

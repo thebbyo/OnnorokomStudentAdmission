@@ -29,23 +29,58 @@ public record HoldResponse(
     string ExpiresAt,
     string ClassName,
     [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-    string? StudentId)
+    string? StudentId,
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    string? AdmissionNo = null)
 {
-    public static HoldResponse From(HoldView v, string? callerStudentId) => new(
-        PublicId.Hold(v.Id), PublicId.Class(v.ClassId), v.Status.ToString(), Utc.Format(v.ExpiresAt), v.ClassName,
-        callerStudentId == v.StudentId ? v.StudentId : null);
+    public static HoldResponse From(HoldView v, string? callerStudentId)
+    {
+        var owner = callerStudentId == v.StudentId;
+        return new(
+            PublicId.Hold(v.Id), PublicId.Class(v.ClassId), v.Status.ToString(), Utc.Format(v.ExpiresAt), v.ClassName,
+            owner ? v.StudentId : null,
+            owner ? AdmissionNumber.Format(v) : null);
+    }
 }
 
-public record ConfirmResponse(string HoldId, string Status, string ClassId, string ExpiresAt)
+public record ConfirmResponse(
+    string HoldId,
+    string Status,
+    string ClassId,
+    string ExpiresAt,
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    string? AdmissionNo = null,
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    string? ConfirmedAt = null)
 {
-    public static ConfirmResponse From(HoldView v) =>
-        new(PublicId.Hold(v.Id), v.Status.ToString(), PublicId.Class(v.ClassId), Utc.Format(v.ExpiresAt));
+    public static ConfirmResponse From(HoldView v) => new(
+        PublicId.Hold(v.Id), v.Status.ToString(), PublicId.Class(v.ClassId), Utc.Format(v.ExpiresAt),
+        AdmissionNumber.Format(v), v.ConfirmedAt is { } c ? Utc.Format(c) : null);
 }
 
-public record MyHoldResponse(string HoldId, string ClassId, string ClassName, string Status, string ExpiresAt)
+public record MyHoldResponse(
+    string HoldId,
+    string ClassId,
+    string ClassName,
+    string Status,
+    string ExpiresAt,
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    string? AdmissionNo = null,
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    string? ConfirmedAt = null)
 {
     public static MyHoldResponse From(HoldView v) => new(
-        PublicId.Hold(v.Id), PublicId.Class(v.ClassId), v.ClassName, v.Status.ToString(), Utc.Format(v.ExpiresAt));
+        PublicId.Hold(v.Id), PublicId.Class(v.ClassId), v.ClassName, v.Status.ToString(), Utc.Format(v.ExpiresAt),
+        AdmissionNumber.Format(v), v.ConfirmedAt is { } c ? Utc.Format(c) : null);
+}
+
+/// <summary>Format ADM-{year of confirmation}-{six digits}, e.g. ADM-2026-000123.</summary>
+public static class AdmissionNumber
+{
+    public static string? Format(HoldView v) =>
+        v.AdmissionNo is { } n && v.ConfirmedAt is { } c
+            ? $"ADM-{c.Year:D4}-{n:D6}"
+            : null;
 }
 
 public static class Utc
