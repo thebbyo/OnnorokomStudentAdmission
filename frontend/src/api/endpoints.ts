@@ -13,7 +13,9 @@ export const createClass = (name: string, totalSeats: number) =>
 export const createHold = (classId: string, studentId: string) =>
   apiRequest<Hold>(`/classes/${enc(classId)}/holds`, { method: 'POST', studentId });
 
-export const getHold = (holdId: string, signal?: AbortSignal) => apiRequest<Hold>(`/holds/${enc(holdId)}`, { signal });
+/** Sends the student header when known, so the server includes studentId for the owner only. */
+export const getHold = (holdId: string, studentId?: string | null, signal?: AbortSignal) =>
+  apiRequest<Hold>(`/holds/${enc(holdId)}`, { signal, studentId: studentId ?? undefined });
 
 export const confirmHold = (holdId: string, studentId: string) =>
   apiRequest<Pick<Hold, 'holdId' | 'status'>>(`/holds/${enc(holdId)}/confirm`, { method: 'POST', studentId });

@@ -30,12 +30,22 @@ builder.Services.AddCors(cors => cors.AddDefaultPolicy(policy =>
 {
     if (options.CorsOrigins.Length == 0) policy.AllowAnyOrigin();
     else policy.WithOrigins(options.CorsOrigins);
-    policy.AllowAnyHeader().AllowAnyMethod().WithExposedHeaders("Date");
+    policy.AllowAnyHeader().AllowAnyMethod().WithExposedHeaders("Date", "X-Server-Time");
 }));
 
 var app = builder.Build();
 
 app.UseMiddleware<ErrorHandlingMiddleware>();
+// Every response (including errors) is stamped with the server clock, to millisecond precision.
+app.Use(async (context, next) =>
+{
+    context.Response.OnStarting(() =>
+    {
+        context.Response.Headers["X-Server-Time"] = DateTime.UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'", System.Globalization.CultureInfo.InvariantCulture);
+        return Task.CompletedTask;
+    });
+    await next();
+});
 // Empty-bodied framework errors (e.g. 405) still get the { error, message } shape.
 app.UseStatusCodePages(async ctx =>
 {

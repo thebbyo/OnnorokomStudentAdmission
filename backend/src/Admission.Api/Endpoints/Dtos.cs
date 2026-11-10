@@ -21,10 +21,19 @@ public record CreateHoldResponse(string HoldId, string ClassId, string StudentId
         PublicId.Hold(v.Id), PublicId.Class(v.ClassId), v.StudentId, v.Status.ToString(), Utc.Format(v.ExpiresAt), v.ClassName);
 }
 
-public record HoldResponse(string HoldId, string ClassId, string Status, string ExpiresAt, string ClassName, string StudentId)
+/// <summary>StudentId is only included for the student who owns the hold (their X-Student-Id matches).</summary>
+public record HoldResponse(
+    string HoldId,
+    string ClassId,
+    string Status,
+    string ExpiresAt,
+    string ClassName,
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    string? StudentId)
 {
-    public static HoldResponse From(HoldView v) => new(
-        PublicId.Hold(v.Id), PublicId.Class(v.ClassId), v.Status.ToString(), Utc.Format(v.ExpiresAt), v.ClassName, v.StudentId);
+    public static HoldResponse From(HoldView v, string? callerStudentId) => new(
+        PublicId.Hold(v.Id), PublicId.Class(v.ClassId), v.Status.ToString(), Utc.Format(v.ExpiresAt), v.ClassName,
+        callerStudentId == v.StudentId ? v.StudentId : null);
 }
 
 public record ConfirmResponse(string HoldId, string Status, string ClassId, string ExpiresAt)

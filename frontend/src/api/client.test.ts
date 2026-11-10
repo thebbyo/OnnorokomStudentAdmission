@@ -90,3 +90,32 @@ describe('apiRequest', () => {
     await expect(apiRequest('/holds/h_1', { method: 'DELETE' })).resolves.toBeUndefined();
   });
 });
+
+describe('server clock precision', () => {
+  const fetchMock = vi.fn();
+  beforeEach(() => {
+    resetClientState();
+    fetchMock.mockReset();
+    vi.stubGlobal('fetch', fetchMock);
+    window.__CONFIG__ = { API_BASE_URL: 'http://api.test' };
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
+
+  it('prefers the millisecond X-Server-Time header over the 1-second Date header', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-11-10T10:00:00.000Z'));
+    fetchMock.mockResolvedValue(
+      jsonResponse(200, [], {
+        Date: 'Tue, 10 Nov 2026 10:05:00 GMT',
+        'X-Server-Time': '2026-11-10T10:05:00.250Z',
+      }),
+    );
+
+    await apiRequest('/classes');
+
+    expect(serverNow() - Date.now()).toBe(300_250);
+  });
+});

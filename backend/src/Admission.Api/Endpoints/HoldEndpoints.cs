@@ -18,8 +18,13 @@ public static class HoldEndpoints
         .Errors(400, 404, 409)
         .Doc("Holds", "Apply: hold a seat for HOLD_DURATION_SECONDS. 409 SEATS_FULL / ALREADY_APPLIED.", needsStudent: true);
 
-        app.MapGet("/holds/{holdId}", async (string holdId, AdmissionService service) =>
-            Results.Ok(HoldResponse.From(await service.GetHoldAsync(Validation.RequireHoldId(holdId)))))
+        app.MapGet("/holds/{holdId}", async (string holdId, HttpRequest request, AdmissionService service) =>
+        {
+            var id = Validation.RequireHoldId(holdId);
+            // The header is optional here; without it (or with another student's) studentId is omitted.
+            var caller = request.Headers["X-Student-Id"].Count == 1 ? request.Headers["X-Student-Id"][0] : null;
+            return Results.Ok(HoldResponse.From(await service.GetHoldAsync(id), caller));
+        })
         .Produces<HoldResponse>()
         .Errors(400, 404)
         .Doc("Holds", "Current status of an application: HELD, CONFIRMED, EXPIRED or CANCELLED.");

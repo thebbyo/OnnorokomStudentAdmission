@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Admission.Api.Domain;
@@ -19,9 +20,18 @@ public static partial class Validation
 
     public static async Task<JsonElement> ReadJsonObjectAsync(HttpRequest request)
     {
-        using var reader = new StreamReader(request.Body);
+        // Strict UTF-8: invalid bytes are a 400, not silently replaced with U+FFFD.
+        using var reader = new StreamReader(request.Body, new UTF8Encoding(false, true));
         var buffer = new char[MaxBodyBytes + 1];
-        var read = await reader.ReadBlockAsync(buffer, 0, buffer.Length);
+        int read;
+        try
+        {
+            read = await reader.ReadBlockAsync(buffer, 0, buffer.Length);
+        }
+        catch (DecoderFallbackException)
+        {
+            throw ApiException.BadRequest(ErrorCodes.ValidationError, "The request body must be valid UTF-8 text.");
+        }
         if (read > MaxBodyBytes)
             throw ApiException.BadRequest(ErrorCodes.ValidationError, "The request body is too large.");
 
@@ -69,6 +79,9 @@ public static partial class Validation
         var name = nameElement.GetString()!.Trim();
         if (name.Length == 0)
             throw ApiException.BadRequest(ErrorCodes.ValidationError, "\"name\" must not be empty.");
+        // Reject names that only contain invisible or punctuation characters (they would show as a blank card).
+        if (!name.Any(char.IsLetterOrDigit))
+            throw ApiException.BadRequest(ErrorCodes.ValidationError, "\"name\" must contain at least one letter or number.");
         if (name.Length > MaxNameLength)
             throw ApiException.BadRequest(ErrorCodes.ValidationError, $"\"name\" must be at most {MaxNameLength} characters.");
 

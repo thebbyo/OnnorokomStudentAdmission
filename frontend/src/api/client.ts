@@ -29,12 +29,23 @@ export function serverNow(): number {
   return Date.now() + serverOffsetMs;
 }
 
-function trackServerClock(dateHeader: string | null) {
-  if (!dateHeader) return;
-  const serverMs = Date.parse(dateHeader);
-  if (Number.isNaN(serverMs)) return;
-  // The header has 1-second resolution: assume the middle of that second.
-  const estimate = serverMs + 500 - Date.now();
+function trackServerClock(response: Response) {
+  // X-Server-Time has millisecond precision; Date is only whole seconds (fallback).
+  const precise = response.headers.get('X-Server-Time');
+  const preciseMs = precise ? Date.parse(precise) : NaN;
+  let serverMs: number;
+  let adjustment: number;
+  if (!Number.isNaN(preciseMs)) {
+    serverMs = preciseMs;
+    adjustment = 0;
+  } else {
+    const dateHeader = response.headers.get('Date');
+    if (!dateHeader) return;
+    serverMs = Date.parse(dateHeader);
+    if (Number.isNaN(serverMs)) return;
+    adjustment = 500; // whole-second header: assume the middle of that second
+  }
+  const estimate = serverMs + adjustment - Date.now();
   // Ignore sub-second jitter so countdowns don't jump on every poll.
   if (!hasOffset || Math.abs(estimate - serverOffsetMs) > 1000) {
     serverOffsetMs = estimate;
@@ -97,7 +108,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   }
 
   setOnline(true);
-  trackServerClock(response.headers.get('Date'));
+  trackServerClock(response);
 
   if (response.status === 204) return undefined as T;
 

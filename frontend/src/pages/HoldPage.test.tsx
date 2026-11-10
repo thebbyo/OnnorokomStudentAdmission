@@ -203,3 +203,24 @@ describe('HoldPage', () => {
     expect(screen.getByText("Enter the student's birth registration number above to pay or cancel.")).toBeInTheDocument();
   });
 });
+
+describe('HoldPage seat-count failure', () => {
+  it('explains when the seat count cannot be loaded for an ended hold', async () => {
+    mockServer(({ path }) => {
+      if (path === '/holds/h_1') return json(200, heldHold({ status: 'EXPIRED', expiresAt: inMinutes(-1) }));
+      if (path === '/classes/c_1') return json(500, { error: 'INTERNAL', message: 'x' });
+      return json(200, []);
+    });
+    renderApp('/holds/h_1', { studentId: STUDENT });
+    expect(await screen.findByText(/Something went wrong on our side/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /apply again/i })).not.toBeInTheDocument();
+  });
+
+  it('sends the student header when loading the hold, so the owner check can work', async () => {
+    const server = mockServer(({ path }) => (path === '/holds/h_1' ? json(200, heldHold()) : json(200, [])));
+    renderApp('/holds/h_1', { studentId: STUDENT });
+    await screen.findByRole('button', { name: /pay admission fee/i });
+    const holdCall = server.mock.calls.find(([url]) => String(url).endsWith('/holds/h_1'));
+    expect((holdCall?.[1] as RequestInit).headers).toMatchObject({ 'X-Student-Id': STUDENT });
+  });
+});

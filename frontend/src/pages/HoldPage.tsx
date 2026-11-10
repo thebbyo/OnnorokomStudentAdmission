@@ -20,7 +20,7 @@ export function HoldPage() {
   const { studentId } = useStudent();
   const navigate = useNavigate();
 
-  const hold = usePolling((signal) => getHold(holdId, signal), 3000, [holdId]);
+  const hold = usePolling((signal) => getHold(holdId, studentId, signal), 3000, [holdId, studentId]);
   const data = hold.data;
 
   // Set right after a successful pay/cancel so the screen updates before the next poll.
@@ -240,6 +240,11 @@ export function HoldPage() {
             )}
             {seats.data && seats.data.availableSeats <= 0 && (
               <p className="inline-hint">Apply again isn&apos;t possible. This class is full right now.</p>
+            )}
+            {!seats.data && seats.error !== undefined && (
+              <p className="inline-hint" role="alert">
+                {friendlyError(seats.error)}
+              </p>
             )}
             {!studentId && <RequireStudentHint action="apply again" />}
           </div>
