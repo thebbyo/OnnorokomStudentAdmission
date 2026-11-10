@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backend-tests:
+    name: Backend tests (real PostgreSQL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run xUnit tests in Docker (Testcontainers uses the runner's Docker socket)
+        run: docker compose --profile tests run --rm --build backend-tests
+
+  frontend-tests:
+    name: Frontend tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Vitest in Docker
+        run: docker compose --profile tests run --rm --build frontend-tests
+
+  end-to-end:
+    name: Stack, smoke test, two processes, load
+    needs: [backend-tests, frontend-tests]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start the stack exactly as evaluators do
+        run: docker compose up -d --build --wait
+      - name: API smoke test (every endpoint and rule)
+        run: ./scripts/smoke.sh
+      - name: Start the second API process on the same database
+        run: docker compose --profile bonus up -d --build --wait backend2
+      - name: Two processes race for 5 seats (expect 5 x 201, 55 x 409)
+        run: |
+          out=$(./scripts/two-process-race.sh)
+          echo "$out"
+          echo "$out" | grep -qE '^\s+5 201$'
+          echo "$out" | grep -qE '^\s+55 409$'
+      - name: "Load test: 2,000 applicants for 120 seats"
+        run: docker compose --profile load run --rm k6
+      - name: Show logs on failure
+        if: failure()
+        run: docker compose logs --no-color --tail 200
+      - name: Tear down
+        if: always()
+        run: docker compose --profile bonus down -v

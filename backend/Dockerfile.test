@@ -1,0 +1,10 @@
+# Test runner image: builds API + tests, runs xUnit. Needs /var/run/docker.sock (Testcontainers).
+FROM mcr.microsoft.com/dotnet/sdk:8.0
+WORKDIR /src
+COPY Directory.Build.props Admission.sln ./
+COPY src/Admission.Api/Admission.Api.csproj src/Admission.Api/
+COPY tests/Admission.Tests/Admission.Tests.csproj tests/Admission.Tests/
+RUN dotnet restore Admission.sln
+COPY . .
+RUN dotnet build Admission.sln -c Release --no-restore
+ENTRYPOINT ["dotnet", "test", "Admission.sln", "-c", "Release", "--no-build", "--logger", "console;verbosity=normal"]

@@ -1,0 +1,112 @@
+name: school-admission
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: admission
+      POSTGRES_USER: admission
+      POSTGRES_PASSWORD: admission
+    command: ["postgres", "-c", "max_connections=200"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admission -d admission"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__Default: "Host=db;Port=5432;Database=admission;Username=admission;Password=admission;Maximum Pool Size=50;Timeout=30"
+      HOLD_DURATION_SECONDS: ${HOLD_DURATION_SECONDS:-600}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+    ports:
+      - "8080:8080"
+    # Healthy once Kestrel accepts connections, i.e. after migrations have been applied.
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080"]
+      interval: 2s
+      timeout: 3s
+      retries: 60
+      start_period: 5s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      target: runtime
+    environment:
+      API_BASE_URL: ${API_BASE_URL:-http://localhost:8080}
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Bonus: a second API process on :8081 sharing the same database.
+  # docker compose --profile bonus up -d   (then ./scripts/two-process-race.sh)
+  backend2:
+    profiles: ["bonus"]
+    build: ./backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__Default: "Host=db;Port=5432;Database=admission;Username=admission;Password=admission;Maximum Pool Size=50;Timeout=30"
+      HOLD_DURATION_SECONDS: ${HOLD_DURATION_SECONDS:-600}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+    ports:
+      - "8081:8080"
+    # Same readiness rule as backend: --wait only returns once the second process accepts connections.
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080"]
+      interval: 2s
+      timeout: 3s
+      retries: 60
+      start_period: 5s
+    restart: unless-stopped
+
+  # docker compose --profile tests run --rm --build backend-tests
+  backend-tests:
+    profiles: ["tests"]
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.test
+    environment:
+      TESTCONTAINERS_HOST_OVERRIDE: host.docker.internal
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  # docker compose --profile tests run --rm --build frontend-tests
+  frontend-tests:
+    profiles: ["tests"]
+    build:
+      context: ./frontend
+      target: test
+
+  # Load test: 2,000 applicants for 120 seats in one burst. docker compose --profile load run --rm k6
+  k6:
+    profiles: ["load"]
+    image: grafana/k6:0.54.0
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      API_BASE_URL: http://backend:8080
+      SEATS: ${LOAD_SEATS:-120}
+      APPLICANTS: ${LOAD_APPLICANTS:-2000}
+    volumes:
+      - ./load:/scripts:ro
+    command: ["run", "/scripts/apply-burst.js"]
+
+volumes:
+  pgdata:

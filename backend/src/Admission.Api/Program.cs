@@ -1,0 +1,113 @@
+using Admission.Api.Data;
+using Admission.Api.Endpoints;
+using Admission.Api.Errors;
+using Admission.Api.Services;
+using Admission.Api.Services;
+using Microsoft.EntityFrameworkCore;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Structured (JSON) logs in containers, one object per line, for log collectors.
+builder.Logging.ClearProviders();
+builder.Logging.AddJsonConsole(o => o.IncludeScopes = true);
+// Keep the logs readable: framework chatter (every SQL statement, every status line) stays at Warning.
+builder.Logging.AddFilter("Microsoft.EntityFrameworkCore.Database.Command", LogLevel.Warning);
+builder.Logging.AddFilter("Microsoft.AspNetCore.Http.Result", LogLevel.Warning);
+builder.Logging.AddFilter("Microsoft.AspNetCore.Routing", LogLevel.Warning);
+
+builder.Services.AddHealthChecks()
+    .AddCheck("database", new DatabaseHealthCheck(builder.Configuration.GetConnectionString("Default")
+        ?? "Host=localhost;Port=5432;Database=admission;Username=admission;Password=admission"), tags: ["ready"]);
+
+var options = AdmissionOptions.FromConfiguration(builder.Configuration);
+builder.Services.AddSingleton(options);
+
+builder.Services.AddDbContext<AdmissionDbContext>(o =>
+    o.UseNpgsql(builder.Configuration.GetConnectionString("Default")
+        ?? "Host=localhost;Port=5432;Database=admission;Username=admission;Password=admission"));
+builder.Services.AddScoped<AdmissionService>();
+builder.Services.AddHostedService<ExpirySweeper>();
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(o => o.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+{
+    Title = "School Admission API",
+    Version = "v1",
+    Description = "First-come-first-served seat holds. Student identity is the X-Student-Id header (17 digits). "
+                  + "Errors are { \"error\": CODE, \"message\": text }.",
+}));
+
+// Any origin by default, so the UI works whether it is opened as localhost, 127.0.0.1 or a LAN hostname.
+// Safe because the API uses no cookies or credentials. CORS_ORIGINS can restrict it.
+builder.Services.AddCors(cors => cors.AddDefaultPolicy(policy =>
+{
+    if (options.CorsOrigins.Length == 0) policy.AllowAnyOrigin();
+    else policy.WithOrigins(options.CorsOrigins);
+    policy.AllowAnyHeader().AllowAnyMethod().WithExposedHeaders("Date", "X-Server-Time", "X-Request-Id");
+}));
+
+var app = builder.Build();
+
+app.UseMiddleware<ErrorHandlingMiddleware>();
+// Every response gets a request id (echoed if the client sent one), also available to logs.
+app.Use(async (context, next) =>
+{
+    var requestId = context.Request.Headers["X-Request-Id"].ToString();
+    if (string.IsNullOrWhiteSpace(requestId) || requestId.Length > 64)
+        requestId = Guid.NewGuid().ToString("N");
+    context.Items["RequestId"] = requestId;
+    context.Response.Headers["X-Request-Id"] = requestId;
+    using (app.Logger.BeginScope(new Dictionary<string, object> { ["RequestId"] = requestId }))
+        await next();
+});
+
+// Every response (including errors) is stamped with the server clock, to millisecond precision.
+app.Use(async (context, next) =>
+{
+    context.Response.OnStarting(() =>
+    {
+        context.Response.Headers["X-Server-Time"] = DateTime.UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'", System.Globalization.CultureInfo.InvariantCulture);
+        return Task.CompletedTask;
+    });
+    await next();
+});
+// Empty-bodied framework errors (e.g. 405) still get the { error, message } shape.
+app.UseStatusCodePages(async ctx =>
+{
+    var status = ctx.HttpContext.Response.StatusCode;
+    var (code, message) = status switch
+    {
+        404 => (ErrorCodes.NotFound, "That endpoint does not exist."),
+        405 => (ErrorCodes.MethodNotAllowed, "That method is not allowed on this endpoint."),
+        415 => (ErrorCodes.ValidationError, "Send the request body as JSON."),
+        _ when status < 500 => (ErrorCodes.ValidationError, "The request could not be processed."),
+        _ => (ErrorCodes.Internal, "Something went wrong on our side. Please try again."),
+    };
+    await ErrorHandlingMiddleware.WriteAsync(ctx.HttpContext, status, code, message);
+});
+app.UseCors();
+
+// API explorer UI for reviewers: http://localhost:8080/swagger
+app.UseSwagger();
+app.UseSwaggerUI(o => o.DocumentTitle = "School Admission API");
+
+app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = _ => false, // process is up
+});
+app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready"), // database reachable
+});
+
+app.MapClassEndpoints();
+app.MapHoldEndpoints();
+app.MapMeEndpoints();
+app.MapFallback((HttpContext ctx) =>
+    ErrorHandlingMiddleware.WriteAsync(ctx, 404, ErrorCodes.NotFound, "That endpoint does not exist."));
+
+await DatabaseMigrator.MigrateWithRetryAsync(app.Services, app.Logger);
+
+app.Run();
+
+public partial class Program;
