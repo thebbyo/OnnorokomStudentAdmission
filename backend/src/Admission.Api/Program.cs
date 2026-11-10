@@ -40,6 +40,7 @@ app.UseStatusCodePages(async ctx =>
 app.UseCors();
 
 app.MapClassEndpoints();
+app.MapHoldEndpoints();
 app.MapFallback((HttpContext ctx) =>
     ErrorHandlingMiddleware.WriteAsync(ctx, 404, ErrorCodes.NotFound, "That endpoint does not exist."));
 

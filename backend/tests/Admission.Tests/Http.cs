@@ -43,3 +43,34 @@ public static class Http
         return request;
     }
 }
+
+public static class HoldApi
+{
+    public static Task<HttpResponseMessage> HoldAsync(this HttpClient client, string classId, string? studentId) =>
+        client.SendAsync(new HttpRequestMessage(HttpMethod.Post, $"/classes/{classId}/holds").WithStudent(studentId));
+
+    public static async Task<JsonElement> HoldOkAsync(this HttpClient client, string classId, string studentId)
+    {
+        var response = await client.HoldAsync(classId, studentId);
+        var text = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.Created, $"hold expected 201, got {(int)response.StatusCode}: {text}");
+        using var doc = JsonDocument.Parse(text);
+        return doc.RootElement.Clone();
+    }
+
+    public static async Task<JsonElement> GetClassAsync(this HttpClient client, string classId)
+    {
+        var response = await client.GetAsync($"/classes/{classId}");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        return await response.ReadJsonAsync();
+    }
+
+    /// <summary>Starts every request at the same instant, then waits for all of them.</summary>
+    public static async Task<HttpResponseMessage[]> FireTogetherAsync(IEnumerable<Func<Task<HttpResponseMessage>>> requests)
+    {
+        var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var tasks = requests.Select(send => Task.Run(async () => { await gate.Task; return await send(); })).ToArray();
+        gate.SetResult();
+        return await Task.WhenAll(tasks);
+    }
+}

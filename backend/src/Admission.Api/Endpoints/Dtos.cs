@@ -15,6 +15,12 @@ public record ClassStatsResponse(string Id, string Name, int TotalSeats, int Hel
         new(PublicId.Class(v.Id), v.Name, v.TotalSeats, v.HeldSeats, v.ConfirmedSeats, v.AvailableSeats);
 }
 
+public record CreateHoldResponse(string HoldId, string ClassId, string StudentId, string Status, string ExpiresAt, string ClassName)
+{
+    public static CreateHoldResponse From(HoldView v) => new(
+        PublicId.Hold(v.Id), PublicId.Class(v.ClassId), v.StudentId, v.Status.ToString(), Utc.Format(v.ExpiresAt), v.ClassName);
+}
+
 public static class Utc
 {
     /// <summary>UTC ISO-8601 with a literal Z, e.g. 2026-11-01T04:10:00Z.</summary>
