@@ -15,6 +15,15 @@ builder.Services.AddDbContext<AdmissionDbContext>(o =>
 builder.Services.AddScoped<AdmissionService>();
 builder.Services.AddHostedService<ExpirySweeper>();
 
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(o => o.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+{
+    Title = "School Admission API",
+    Version = "v1",
+    Description = "First-come-first-served seat holds. Student identity is the X-Student-Id header (17 digits). "
+                  + "Errors are { \"error\": CODE, \"message\": text }.",
+}));
+
 builder.Services.AddCors(cors => cors.AddDefaultPolicy(policy => policy
     .WithOrigins(options.CorsOrigins)
     .AllowAnyHeader()
@@ -39,6 +48,10 @@ app.UseStatusCodePages(async ctx =>
     await ErrorHandlingMiddleware.WriteAsync(ctx.HttpContext, status, code, message);
 });
 app.UseCors();
+
+// API explorer UI for reviewers: http://localhost:8080/swagger
+app.UseSwagger();
+app.UseSwaggerUI(o => o.DocumentTitle = "School Admission API");
 
 app.MapClassEndpoints();
 app.MapHoldEndpoints();

@@ -12,6 +12,9 @@ public static class MeEndpoints
         {
             var studentId = Validation.RequireStudentId(request);
             return Results.Ok((await service.ListStudentHoldsAsync(studentId)).Select(MyHoldResponse.From));
-        });
+        })
+        .Produces<MyHoldResponse[]>()
+        .Errors(400)
+        .Doc("Student", "All applications of the student in X-Student-Id, newest first.", needsStudent: true);
     }
 }

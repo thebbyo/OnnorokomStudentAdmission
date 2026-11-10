@@ -16,6 +16,7 @@ docker compose up
 |---|---|
 | Web app (parents and school admin) | http://localhost:3000 |
 | API | http://localhost:8080 |
+| API explorer (Swagger UI, "Try it out" works) | http://localhost:8080/swagger |
 
 The first start builds the images (a few minutes). Database migrations apply automatically once PostgreSQL is healthy. Data lives in the named volume `pgdata`, so it survives `docker compose down` / `up`. `docker compose down -v` wipes it.
 
