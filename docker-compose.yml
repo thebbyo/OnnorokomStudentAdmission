@@ -64,6 +64,13 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS:-*}
     ports:
       - "8081:8080"
+    # Same readiness rule as backend: --wait only returns once the second process accepts connections.
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080"]
+      interval: 2s
+      timeout: 3s
+      retries: 60
+      start_period: 5s
     restart: unless-stopped
 
   # docker compose --profile tests run --rm --build backend-tests

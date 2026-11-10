@@ -6,6 +6,10 @@
 set -euo pipefail
 A="${A:-http://localhost:8080}"; B="${B:-http://localhost:8081}"
 OUT="$(mktemp -d)"
+# Wait until both processes accept connections (a container can be "running" before it listens).
+for url in "$A" "$B"; do
+  for _ in $(seq 1 60); do curl -s -o /dev/null "$url/health/live" && break; sleep 1; done
+done
 CLASS=$(curl -s -X POST "$A/classes" -H 'Content-Type: application/json' \
   --data '{"name":"Two-process race","totalSeats":5}' | sed -n 's/.*"id":"\([^"]*\)".*/\1/p')
 echo "class $CLASS"
