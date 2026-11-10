@@ -5,6 +5,7 @@ import { Layout } from './components/Layout';
 import { AdminPage } from './pages/AdminPage';
 import { ClassListPage } from './pages/ClassListPage';
 import { HoldPage } from './pages/HoldPage';
+import { MyApplicationsPage } from './pages/MyApplicationsPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { StudentProvider } from './state/StudentContext';
 
@@ -14,6 +15,7 @@ export function AppRoutes() {
       <Route path="/" element={<ClassListPage />} />
       <Route path="/admin" element={<AdminPage />} />
       <Route path="/holds/:holdId" element={<HoldPage />} />
+      <Route path="/me" element={<MyApplicationsPage />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
