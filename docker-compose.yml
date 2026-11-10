@@ -25,9 +25,16 @@ services:
     environment:
       ConnectionStrings__Default: "Host=db;Port=5432;Database=admission;Username=admission;Password=admission;Maximum Pool Size=50;Timeout=30"
       HOLD_DURATION_SECONDS: ${HOLD_DURATION_SECONDS:-600}
-      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
     ports:
       - "8080:8080"
+    # Healthy once Kestrel accepts connections, i.e. after migrations have been applied.
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080"]
+      interval: 2s
+      timeout: 3s
+      retries: 60
+      start_period: 5s
     restart: unless-stopped
 
   frontend:
@@ -39,7 +46,8 @@ services:
     ports:
       - "3000:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     restart: unless-stopped
 
   # Bonus: a second API process on :8081 sharing the same database.
@@ -53,7 +61,7 @@ services:
     environment:
       ConnectionStrings__Default: "Host=db;Port=5432;Database=admission;Username=admission;Password=admission;Maximum Pool Size=50;Timeout=30"
       HOLD_DURATION_SECONDS: ${HOLD_DURATION_SECONDS:-600}
-      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
     ports:
       - "8081:8080"
     restart: unless-stopped

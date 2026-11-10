@@ -77,6 +77,35 @@ public class ClassEndpointsTests : IClassFixture<AdmissionApiFactory>
     }
 
     [Fact]
+    public async Task Get_UnknownBareGuid_404()
+    {
+        var response = await _client.GetAsync($"/classes/{Guid.NewGuid()}");
+        await response.AssertErrorAsync(HttpStatusCode.NotFound, "CLASS_NOT_FOUND");
+    }
+
+    [Fact]
+    public async Task Get_ByBareGuidOfExistingClass_200()
+    {
+        var id = (await _client.CreateClassAsync("Bare guid class", 3)).GetProperty("id").GetString()!;
+        var response = await _client.GetAsync($"/classes/{Guid.ParseExact(id[2..], "N")}");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(id, (await response.ReadJsonAsync()).GetProperty("id").GetString());
+    }
+
+    [Theory]
+    [InlineData("http://127.0.0.1:3000")]
+    [InlineData("http://my-laptop.local:3000")]
+    public async Task Cors_AllowsAnyOriginByDefault(string origin)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, "/classes");
+        request.Headers.Add("Origin", origin);
+        var response = await _client.SendAsync(request);
+        Assert.True(response.Headers.TryGetValues("Access-Control-Allow-Origin", out var values), "missing ACAO");
+        Assert.Contains(values!, v => v == "*" || v == origin);
+        Assert.True(response.Headers.TryGetValues("Access-Control-Expose-Headers", out var exposed) && exposed.Any(v => v.Contains("Date")));
+    }
+
+    [Fact]
     public async Task UnknownRoute_404_JsonError()
     {
         var response = await _client.GetAsync("/nope");

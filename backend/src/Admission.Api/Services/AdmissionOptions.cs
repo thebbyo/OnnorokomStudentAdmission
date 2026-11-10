@@ -5,7 +5,8 @@ public class AdmissionOptions
 {
     public TimeSpan HoldDuration { get; init; } = TimeSpan.FromSeconds(600);
     public TimeSpan SweepInterval { get; init; } = TimeSpan.FromSeconds(2);
-    public string[] CorsOrigins { get; init; } = ["http://localhost:3000"];
+    /// <summary>Allowed browser origins. Empty means any origin (the API uses no cookies or credentials).</summary>
+    public string[] CorsOrigins { get; init; } = [];
 
     public static AdmissionOptions FromConfiguration(IConfiguration config) => new()
     {
@@ -23,6 +24,6 @@ public class AdmissionOptions
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Select(o => o.TrimEnd('/'))
             .ToArray();
-        return origins.Length > 0 ? origins : ["http://localhost:3000"];
+        return origins.Contains("*") ? [] : origins;
     }
 }

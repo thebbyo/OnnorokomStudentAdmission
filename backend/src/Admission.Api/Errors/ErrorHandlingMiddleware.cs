@@ -38,6 +38,8 @@ public class ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorHandling
     private static bool IsBusy(Exception ex) => ex switch
     {
         NpgsqlException { InnerException: TimeoutException } => true,
+        // Deadlock / serialization failure / lock not available: transient, safe for the client to retry.
+        PostgresException { SqlState: "40P01" or "40001" or "55P03" } => true,
         InvalidOperationException ioe when ioe.Message.Contains("pool", StringComparison.OrdinalIgnoreCase)
                                           && ioe.Message.Contains("exhausted", StringComparison.OrdinalIgnoreCase) => true,
         _ => ex.InnerException is not null && IsBusy(ex.InnerException),

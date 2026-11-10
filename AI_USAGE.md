@@ -32,11 +32,13 @@
 | The 17-digit student id wrapped mid-number on small phones. | Same screenshot review. |
 | It animated the seat bar's `width` on every poll (layout work) and used an ease-in curve. | tastemaker's `audit_motion.py`. Moved to `transform: scaleX`. |
 | A countdown test recomputed its target time on every render, so it never counted down. | The test failed. The test was wrong, not the hook. |
+| A fresh-context AI review of the whole branch found three gaps the tests missed. CORS only allowed `localhost:3000`, so opening the app as `127.0.0.1` showed a dead UI. The expiry sweeper could deadlock with an apply under load. A bare UUID returned 400 instead of 404. | A second reviewer (separate AI session) read the diff and probed the running API. Each issue got a failing test first, then a fix (`SKIP LOCKED`, any-origin CORS, GUID ids), plus a backend healthcheck. |
+| Adding Swagger with `.Accepts<T>("application/json")` made `POST /classes` reject bodies without a JSON content type (415). | An existing test (`Create_NoContentType_400`) failed. The body is now documented without the constraint. |
 | It added `Co-Authored-By` lines to commits. | I noticed and asked for them to be removed. History was rewritten before the first push. |
 
 ## How I verified it
 
-- **Backend:** 124 xUnit tests against real PostgreSQL, including:
+- **Backend:** 137 xUnit tests against real PostgreSQL, including:
   - 50 simultaneous applications for 5 seats;
   - parallel confirms;
   - confirm racing cancel;

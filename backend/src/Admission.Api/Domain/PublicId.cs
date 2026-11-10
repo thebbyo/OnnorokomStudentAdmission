@@ -1,6 +1,9 @@
 namespace Admission.Api.Domain;
 
-/// <summary>Public ids are a type prefix plus a 32-char lowercase-hex GUID: c_… for classes, h_… for holds.</summary>
+/// <summary>
+/// Public ids are a type prefix plus a 32-char lowercase-hex GUID: c_… for classes, h_… for holds.
+/// A bare GUID is also accepted as well-formed, so an unknown one is a 404 (not found) rather than a 400.
+/// </summary>
 public static class PublicId
 {
     private const string ClassPrefix = "c_";
@@ -15,8 +18,9 @@ public static class PublicId
     private static bool TryParse(string? value, string prefix, out Guid id)
     {
         id = Guid.Empty;
-        if (value is null || value.Length != prefix.Length + 32 || !value.StartsWith(prefix, StringComparison.Ordinal))
-            return false;
-        return Guid.TryParseExact(value.AsSpan(prefix.Length), "N", out id);
+        if (value is null) return false;
+        if (value.Length == prefix.Length + 32 && value.StartsWith(prefix, StringComparison.Ordinal))
+            return Guid.TryParseExact(value.AsSpan(prefix.Length), "N", out id);
+        return Guid.TryParseExact(value, "N", out id) || Guid.TryParseExact(value, "D", out id);
     }
 }

@@ -47,6 +47,17 @@ public class ErrorHandlingMiddlewareTests
         Assert.Equal("SERVICE_BUSY", body.GetProperty("error").GetString());
     }
 
+    [Theory]
+    [InlineData("40P01")] // deadlock detected
+    [InlineData("40001")] // serialization failure
+    [InlineData("55P03")] // lock not available
+    public async Task TransientLockConflicts_Return503(string sqlState)
+    {
+        var (status, body) = await RunAsync(new PostgresException("conflict", "ERROR", "ERROR", sqlState));
+        Assert.Equal(503, status);
+        Assert.Equal("SERVICE_BUSY", body.GetProperty("error").GetString());
+    }
+
     [Fact]
     public async Task BadHttpRequest_Returns400()
     {

@@ -29,7 +29,10 @@ public class AdmissionOptionsTests
     public void SweepInterval_DefaultsTo2() => Assert.Equal(TimeSpan.FromSeconds(2), From().SweepInterval);
 
     [Fact]
-    public void Cors_DefaultsToFrontend() => Assert.Equal(new[] { "http://localhost:3000" }, From().CorsOrigins);
+    public void Cors_DefaultsToAnyOrigin() => Assert.Empty(From().CorsOrigins);
+
+    [Fact]
+    public void Cors_StarMeansAnyOrigin() => Assert.Empty(From(("CORS_ORIGINS", "*")).CorsOrigins);
 
     [Fact]
     public void Cors_SplitsAndTrims() =>

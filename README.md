@@ -35,7 +35,7 @@ The first start builds the images (a few minutes). Database migrations apply aut
 | `ConnectionStrings__Default` | backend | compose `db` service | PostgreSQL connection string |
 | `HOLD_DURATION_SECONDS` | backend | `600` | How long a seat stays on hold |
 | `SWEEP_INTERVAL_SECONDS` | backend | `2` | How often expired holds are released |
-| `CORS_ORIGINS` | backend | `http://localhost:3000` | Comma-separated allowed origins |
+| `CORS_ORIGINS` | backend | `*` (any origin) | Comma-separated allowed origins; the API uses no cookies, so any origin is safe |
 | `API_BASE_URL` | frontend | `http://localhost:8080` | Backend URL used by the browser (written to `config.js` at container start) |
 
 Compose passes `HOLD_DURATION_SECONDS`, `CORS_ORIGINS` and `API_BASE_URL` through from your shell. For example, `HOLD_DURATION_SECONDS=30 docker compose up` makes expiry quick to try.

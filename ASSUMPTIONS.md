@@ -5,7 +5,7 @@ Decisions taken where the brief is silent, and why.
 ## API and data
 
 - **`GET /me/holds` returns an array.** The brief's example shows a single object, but the endpoint is "all of this student's applications", so it returns all of them, newest first, including confirmed, expired and cancelled ones.
-- **IDs:** `c_` / `h_` followed by a 32-character hex GUID. Any id that doesn't parse is a 400 (`INVALID_ID`), not a 404, because it can't refer to anything.
+- **IDs:** `c_` / `h_` followed by a 32-character hex GUID. A bare GUID is also accepted, so an unknown but well-formed id is a 404. Anything that isn't an id at all (e.g. `abc`) is a 400 (`INVALID_ID`).
 - **Student id:** exactly 17 ASCII digits; leading zeros are allowed. Spaces, dashes and non-ASCII digits are rejected (400 `INVALID_STUDENT_ID`).
 - **Class names are not unique.** Names are trimmed and must be 1–200 characters. Rejecting duplicates would also break anyone re-running an automated test suite that creates "Class 6 – Morning Shift" each time.
 - **`totalSeats`:** a JSON integer from 1 to 100,000. `"120"`, `120.0`, `1e2`, `true` and `null` are all rejected rather than coerced.
@@ -39,6 +39,8 @@ Decisions taken where the brief is silent, and why.
 - **The seat rule is enforced by a row lock on the class.** Each hold, confirm and cancel takes `SELECT … FOR UPDATE` on the class row, then counts and writes in the same transaction. This serialises changes per class only, so other classes aren't blocked.
 - **A partial unique index on (class, student) for active holds is a second line of defence.** A violation becomes 409 `ALREADY_APPLIED`.
 - **Bonus: two API processes.** `docker compose --profile bonus up` adds `backend2` on :8081 against the same database. Because the lock lives in PostgreSQL, rule 1 still holds. `scripts/two-process-race.sh` fires 60 simultaneous requests split across both and gets exactly 5 × 201 for 5 seats.
+- **CORS allows any origin by default.** The API uses no cookies or credentials, and this lets the UI work when it is opened as `127.0.0.1` or a LAN hostname. `CORS_ORIGINS` can restrict it.
+- **The expiry sweeper uses `FOR UPDATE SKIP LOCKED`**, so it never waits on a row that an apply, confirm or cancel holds, and can't deadlock with them. Any transient lock conflict is answered with 503 `SERVICE_BUSY`, never 500.
 - **Connection pool:** 50 connections per process, and PostgreSQL `max_connections` is 200. A burst of thousands of requests queues for a connection (30 s timeout). If the pool is exhausted, the API answers 503 `SERVICE_BUSY` instead of 500, and the UI says "very busy, try again".
 
 ## UI

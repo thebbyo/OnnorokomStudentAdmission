@@ -24,11 +24,14 @@ builder.Services.AddSwaggerGen(o => o.SwaggerDoc("v1", new Microsoft.OpenApi.Mod
                   + "Errors are { \"error\": CODE, \"message\": text }.",
 }));
 
-builder.Services.AddCors(cors => cors.AddDefaultPolicy(policy => policy
-    .WithOrigins(options.CorsOrigins)
-    .AllowAnyHeader()
-    .AllowAnyMethod()
-    .WithExposedHeaders("Date")));
+// Any origin by default, so the UI works whether it is opened as localhost, 127.0.0.1 or a LAN hostname.
+// Safe because the API uses no cookies or credentials. CORS_ORIGINS can restrict it.
+builder.Services.AddCors(cors => cors.AddDefaultPolicy(policy =>
+{
+    if (options.CorsOrigins.Length == 0) policy.AllowAnyOrigin();
+    else policy.WithOrigins(options.CorsOrigins);
+    policy.AllowAnyHeader().AllowAnyMethod().WithExposedHeaders("Date");
+}));
 
 var app = builder.Build();
 
