@@ -10,6 +10,10 @@ var builder = WebApplication.CreateBuilder(args);
 // Structured (JSON) logs in containers, one object per line, for log collectors.
 builder.Logging.ClearProviders();
 builder.Logging.AddJsonConsole(o => o.IncludeScopes = true);
+// Keep the logs readable: framework chatter (every SQL statement, every status line) stays at Warning.
+builder.Logging.AddFilter("Microsoft.EntityFrameworkCore.Database.Command", LogLevel.Warning);
+builder.Logging.AddFilter("Microsoft.AspNetCore.Http.Result", LogLevel.Warning);
+builder.Logging.AddFilter("Microsoft.AspNetCore.Routing", LogLevel.Warning);
 
 builder.Services.AddHealthChecks()
     .AddCheck("database", new DatabaseHealthCheck(builder.Configuration.GetConnectionString("Default")
