@@ -1,0 +1,11 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <!-- exFAT/macOS AppleDouble metadata files (._Foo.cs) must never be compiled.
+         Item Remove in .props runs before the SDK globs exist, so exclude via DefaultItemExcludes. -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);**/._*</DefaultItemExcludes>
+  </PropertyGroup>
+</Project>
