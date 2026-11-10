@@ -26,7 +26,7 @@
 - Lock order is always the class row, then the hold row.
 - Frontend at `http://localhost:3000`. API base comes from `window.__CONFIG__.API_BASE_URL`, written from env `API_BASE_URL`, default `http://localhost:8080`.
 - No UI library. Plain CSS with custom-property tokens. Works at 360px wide. Respects `prefers-reduced-motion`.
-- Every commit message ends with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`. After any task where the AI got something wrong, append a row to `AI_USAGE.md`.
+- Commit messages carry **no** `Co-Authored-By: Claude` trailer (user instruction). After any task where the AI got something wrong, append a row to `AI_USAGE.md`.
 
 ## Review Focus
 
