@@ -4,12 +4,14 @@ import type { MyHold } from '../api/types';
 import { RequireStudentHint } from '../components/RequireStudentHint';
 import { StatusBadge } from '../components/StatusBadge';
 import { useCountdown } from '../hooks/useCountdown';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useMyHolds } from '../hooks/useMyHolds';
 import { useNow } from '../hooks/useNow';
 import { liveStatus } from '../lib/holds';
 import { useStudent } from '../state/StudentContext';
 
 export function MyApplicationsPage() {
+  useDocumentTitle('My applications');
   const { studentId } = useStudent();
   const holds = useMyHolds();
   useNow(1000); // re-group as held items run out

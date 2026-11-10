@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { createClass } from '../api/endpoints';
 import { friendlyError } from '../api/messages';
 import type { CreatedClass } from '../api/types';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 const MAX_NAME = 200;
 const MAX_SEATS = 100_000;
@@ -26,6 +27,7 @@ function validate(name: string, seats: string): Errors {
 }
 
 export function AdminPage() {
+  useDocumentTitle('School admin');
   const [name, setName] = useState('');
   const [seats, setSeats] = useState('');
   const [errors, setErrors] = useState<Errors>({});

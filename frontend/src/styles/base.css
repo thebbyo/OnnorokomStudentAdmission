@@ -78,12 +78,37 @@ a:hover {
 }
 
 /* ---- Layout ---------------------------------------------------------- */
+html {
+  scroll-padding-top: 96px; /* keep focused fields clear of the pinned student bar */
+}
+
 .app-header {
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.student-strip {
   position: sticky;
   top: 0;
   z-index: 10;
   background: var(--color-surface);
   box-shadow: var(--shadow-bar);
+}
+
+.skip-link {
+  position: absolute;
+  left: var(--space-2);
+  top: -100px;
+  z-index: 20;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border-radius: var(--radius-md);
+}
+
+.skip-link:focus {
+  top: var(--space-2);
+  color: var(--color-on-primary);
 }
 
 .app-header__inner,
@@ -96,6 +121,7 @@ a:hover {
 
 .app-header__top {
   display: flex;
+  min-width: 0;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
@@ -172,23 +198,29 @@ a:hover {
 /* ---- Student bar ------------------------------------------------------ */
 .student-bar {
   padding-block: var(--space-2) var(--space-3);
-  border-top: 1px solid var(--color-border);
 }
 
 .student-bar--set {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-2) var(--space-4);
+  gap: var(--space-3);
+  padding-block: var(--space-2);
 }
 
 .student-bar__current {
   display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--space-2);
+  flex-direction: column;
   min-width: 0;
+  line-height: 1.3;
+}
+
+@media (min-width: 640px) {
+  .student-bar__current {
+    flex-direction: row;
+    align-items: baseline;
+    gap: var(--space-2);
+  }
 }
 
 .student-bar__label,
@@ -201,8 +233,13 @@ a:hover {
 .student-bar__id {
   font-weight: 650;
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.04em;
-  overflow-wrap: anywhere;
+  letter-spacing: 0.02em;
+  white-space: nowrap; /* a 17-digit number must never break across lines */
+}
+
+.student-bar--set .btn {
+  flex: none;
+  white-space: nowrap;
 }
 
 .student-bar__row {
@@ -334,6 +371,12 @@ a:hover {
   min-height: 36px;
   padding: var(--space-1) var(--space-3);
   font-size: var(--text-sm);
+}
+
+@media (pointer: coarse) {
+  .btn-sm {
+    min-height: var(--tap);
+  }
 }
 
 .btn-block {
@@ -529,14 +572,15 @@ a:hover {
   height: 1em;
 }
 
+/* Loading indicator: a slow, low-contrast breathe is intentional (shown only while waiting). */
 @media (prefers-reduced-motion: no-preference) {
   .skeleton {
-    animation: skeleton-pulse 1.4s ease-in-out infinite;
+    animation: skeleton-pulse 1.4s linear infinite alternate;
   }
 }
 
 @keyframes skeleton-pulse {
-  50% {
+  to {
     opacity: 0.55;
   }
 }
@@ -642,24 +686,25 @@ a:hover {
 
 /* ---- Seat bar ---------------------------------------------------------- */
 .seatbar {
-  display: flex;
+  position: relative;
   height: 12px;
   overflow: hidden;
   border-radius: var(--radius-pill);
   background: var(--color-track);
 }
 
-.seatbar__segment {
-  display: block;
-  height: 100%;
-  transition: width var(--dur-slow) var(--ease-out);
+.seatbar__layer {
+  position: absolute;
+  inset: 0;
+  transform-origin: left center;
+  transition: transform var(--dur-slow) var(--ease-in-out); /* on-screen morph as counts change */
 }
 
-.seatbar__segment--confirmed {
+.seatbar__layer--confirmed {
   background: var(--color-primary);
 }
 
-.seatbar__segment--held {
+.seatbar__layer--held {
   background: var(--color-held);
 }
 
@@ -738,6 +783,7 @@ a:hover {
   color: var(--color-urgent);
 }
 
+/* One-time urgency cue when the last minute starts; runs once, never loops. */
 @media (prefers-reduced-motion: no-preference) {
   .countdown--urgent {
     animation: urgent-pulse 1.6s var(--ease-out) 1;
@@ -780,9 +826,9 @@ a:hover {
   color: var(--color-danger);
 }
 
+/* Outcome panels appear rarely (a status just changed), so a short fade is earned. Badges are not animated. */
 @media (prefers-reduced-motion: no-preference) {
-  .outcome,
-  .badge {
+  .outcome {
     animation: fade-in var(--dur-base) var(--ease-out);
   }
 }

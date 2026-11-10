@@ -8,6 +8,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { RequireStudentHint } from '../components/RequireStudentHint';
 import { StatusBadge } from '../components/StatusBadge';
 import { useCountdown } from '../hooks/useCountdown';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { usePolling } from '../hooks/usePolling';
 import { useStudent } from '../state/StudentContext';
 
@@ -44,6 +45,9 @@ export function HoldPage() {
   const [reapplying, setReapplying] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const announcement = useStatusAnnouncement(status);
+  useDocumentTitle(
+    status === 'HELD' ? `${countdown.mmss} left to pay` : data?.className ? `Application: ${data.className}` : 'Application',
+  );
 
   if (hold.loading) return <HoldSkeleton />;
 

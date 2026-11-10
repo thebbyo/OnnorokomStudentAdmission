@@ -8,6 +8,7 @@ import { RequireStudentHint } from '../components/RequireStudentHint';
 import { SeatBar } from '../components/SeatBar';
 import { SkeletonCard } from '../components/Skeleton';
 import { useConnection } from '../hooks/useConnection';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useMyHolds } from '../hooks/useMyHolds';
 import { useNow } from '../hooks/useNow';
 import { usePolling } from '../hooks/usePolling';
@@ -17,6 +18,7 @@ import { useStudent } from '../state/StudentContext';
 const number = new Intl.NumberFormat('en-US');
 
 export function ClassListPage() {
+  useDocumentTitle('Classes');
   const classes = usePolling(listClasses, 3000);
   const myHolds = useMyHolds();
   const { studentId } = useStudent();
