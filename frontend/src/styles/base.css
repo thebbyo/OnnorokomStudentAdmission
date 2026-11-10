@@ -662,3 +662,17 @@ a:hover {
 .seatbar__segment--held {
   background: var(--color-held);
 }
+
+/* ---- Admin ------------------------------------------------------------ */
+.admin-layout {
+  max-width: 560px;
+}
+
+.input--short {
+  max-width: 12rem;
+}
+
+.notice a {
+  color: inherit;
+  font-weight: 650;
+}
