@@ -62,6 +62,12 @@ function setOnline(value: boolean) {
   listeners.forEach((listener) => listener(value));
 }
 
+/** Test helper: pretend the server clock differs from this device's clock by `ms`. */
+export function setServerOffsetForTesting(ms: number) {
+  serverOffsetMs = ms;
+  hasOffset = true;
+}
+
 /** Test helper: forget clock offset and connection state. */
 export function resetClientState() {
   serverOffsetMs = 0;

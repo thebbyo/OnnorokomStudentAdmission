@@ -4,6 +4,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { Layout } from './components/Layout';
 import { AdminPage } from './pages/AdminPage';
 import { ClassListPage } from './pages/ClassListPage';
+import { HoldPage } from './pages/HoldPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { StudentProvider } from './state/StudentContext';
 
@@ -12,6 +13,7 @@ export function AppRoutes() {
     <Routes>
       <Route path="/" element={<ClassListPage />} />
       <Route path="/admin" element={<AdminPage />} />
+      <Route path="/holds/:holdId" element={<HoldPage />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
