@@ -21,9 +21,10 @@ public class ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorHandling
 
     public static Task WriteAsync(HttpContext context, int status, string code, string message)
     {
-        context.Response.Clear();
+        // Don't Clear(): that would also drop headers set earlier (X-Request-Id, X-Server-Time, CORS).
         context.Response.StatusCode = status;
-        return context.Response.WriteAsJsonAsync(new ErrorBody(code, message));
+        var requestId = context.Items["RequestId"] as string ?? context.TraceIdentifier;
+        return context.Response.WriteAsJsonAsync(new ErrorBody(code, message, requestId));
     }
 
     private static (int Status, string Code, string Message) Classify(Exception ex) => ex switch
@@ -46,4 +47,4 @@ public class ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorHandling
     };
 }
 
-public record ErrorBody(string Error, string Message);
+public record ErrorBody(string Error, string Message, string? RequestId = null);

@@ -2,9 +2,18 @@ using Admission.Api.Data;
 using Admission.Api.Endpoints;
 using Admission.Api.Errors;
 using Admission.Api.Services;
+using Admission.Api.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Structured (JSON) logs in containers, one object per line, for log collectors.
+builder.Logging.ClearProviders();
+builder.Logging.AddJsonConsole(o => o.IncludeScopes = true);
+
+builder.Services.AddHealthChecks()
+    .AddCheck("database", new DatabaseHealthCheck(builder.Configuration.GetConnectionString("Default")
+        ?? "Host=localhost;Port=5432;Database=admission;Username=admission;Password=admission"), tags: ["ready"]);
 
 var options = AdmissionOptions.FromConfiguration(builder.Configuration);
 builder.Services.AddSingleton(options);
@@ -30,12 +39,24 @@ builder.Services.AddCors(cors => cors.AddDefaultPolicy(policy =>
 {
     if (options.CorsOrigins.Length == 0) policy.AllowAnyOrigin();
     else policy.WithOrigins(options.CorsOrigins);
-    policy.AllowAnyHeader().AllowAnyMethod().WithExposedHeaders("Date", "X-Server-Time");
+    policy.AllowAnyHeader().AllowAnyMethod().WithExposedHeaders("Date", "X-Server-Time", "X-Request-Id");
 }));
 
 var app = builder.Build();
 
 app.UseMiddleware<ErrorHandlingMiddleware>();
+// Every response gets a request id (echoed if the client sent one), also available to logs.
+app.Use(async (context, next) =>
+{
+    var requestId = context.Request.Headers["X-Request-Id"].ToString();
+    if (string.IsNullOrWhiteSpace(requestId) || requestId.Length > 64)
+        requestId = Guid.NewGuid().ToString("N");
+    context.Items["RequestId"] = requestId;
+    context.Response.Headers["X-Request-Id"] = requestId;
+    using (app.Logger.BeginScope(new Dictionary<string, object> { ["RequestId"] = requestId }))
+        await next();
+});
+
 // Every response (including errors) is stamped with the server clock, to millisecond precision.
 app.Use(async (context, next) =>
 {
@@ -65,6 +86,15 @@ app.UseCors();
 // API explorer UI for reviewers: http://localhost:8080/swagger
 app.UseSwagger();
 app.UseSwaggerUI(o => o.DocumentTitle = "School Admission API");
+
+app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = _ => false, // process is up
+});
+app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready"), // database reachable
+});
 
 app.MapClassEndpoints();
 app.MapHoldEndpoints();
