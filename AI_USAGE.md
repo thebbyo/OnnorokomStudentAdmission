@@ -35,14 +35,24 @@
 | A fresh-context AI review of the whole branch found three gaps the tests missed. CORS only allowed `localhost:3000`, so opening the app as `127.0.0.1` showed a dead UI. The expiry sweeper could deadlock with an apply under load. A bare UUID returned 400 instead of 404. | A second reviewer (separate AI session) read the diff and probed the running API. Each issue got a failing test first, then a fix (`SKIP LOCKED`, any-origin CORS, GUID ids), plus a backend healthcheck. |
 | Adding Swagger with `.Accepts<T>("application/json")` made `POST /classes` reject bodies without a JSON content type (415). | An existing test (`Create_NoContentType_400`) failed. The body is now documented without the constraint. |
 | It added `Co-Authored-By` lines to commits. | I noticed and asked for them to be removed. History was rewritten before the first push. |
+| The first load-test run reported success but had sent only about 1,370 of the 2,000 requests. The load generator had too few virtual users and silently dropped the rest. | I read the full k6 output, not just the pass/fail line. Fixed by provisioning enough virtual users and adding a threshold that fails the run if any iteration is dropped. |
+| The Bangla strings were drafted by the AI and have not been checked by a native speaker. | Flagged in the README and in `frontend/src/i18n/dictionary.ts`. Needs review before submission. |
+| The Bangla toggle's accessible name came from an `aria-label` that differed from the visible text. | A test looking the button up by its visible label failed. Removed the override so the visible text is the name. |
+
+## Items added after the first submission candidate
+
+- Swagger UI, reviewer fixes (strict UTF-8, owner-only `studentId`, millisecond server clock), health endpoints, request IDs, JSON logs.
+- The admission slip, with the admission number from a database sequence.
+- The Bangla / English switch for parent-facing screens.
+- A k6 burst test, the architecture document with Mermaid diagrams, and a CI workflow.
 
 ## How I verified it
 
-- **Backend:** 137 xUnit tests against real PostgreSQL, including:
+- **Backend:** 156 xUnit tests against real PostgreSQL, including:
   - 50 simultaneous applications for 5 seats;
   - parallel confirms;
   - confirm racing cancel;
   - expiry with no API calls.
-- **Frontend:** 82 Vitest tests, including the countdown hitting 0 and a skewed device clock.
+- **Frontend:** 102 Vitest tests, including the countdown hitting 0, a skewed device clock, and checks that the English and Bangla dictionaries have identical keys.
 - **Clean-clone check:** `docker compose down -v && docker compose up --build`, then `scripts/smoke.sh` walking every endpoint, then `down`/`up` to confirm data survives.
 - **Two-process check:** `scripts/two-process-race.sh` across two API processes returned exactly 5 × 201 and 55 × 409.

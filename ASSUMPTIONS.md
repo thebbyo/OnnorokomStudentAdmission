@@ -53,4 +53,9 @@ Decisions taken where the brief is silent, and why.
   - The open application refreshes every 3 s.
   - My applications refreshes every 5 s.
   - Polling pauses in background tabs and refreshes immediately on return.
-- **UI language is English.** The brief's UI labels are Bengali, but the API, codes and evaluation are in English. All copy is in one place (`frontend/src/api/messages.ts` plus the pages), so translating later is straightforward.
+- **Language: English by default, with a Bangla toggle.** The brief is written in Bangla and the users are Bangladeshi parents, so the parent screens (classes, hold, my applications, admission slip and error messages) can be shown in Bangla. The choice is remembered in the browser. The school admin page stays English, to limit the translation work. The Bangla wording is a draft and needs review by a native speaker. Digits stay Western (1, 2, 3) in both languages, as most Bangladeshi digital services use.
+- **Admission number format `ADM-{year}-{six digits}`**, e.g. `ADM-2026-000123`. It comes from a database sequence, so it is unique and never reused. It is assigned on the first confirm, and repeat confirms return the same number. The year is the year of confirmation.
+- **Admission slip is a web page** (`/holds/{id}/slip`) with print styling, not a PDF. It is shown only after payment.
+- **Health endpoints:** `/health/live` checks only that the process is up. `/health/ready` also checks that the database answers.
+- **Request IDs and JSON logs** are included in every response (`X-Request-Id`) and in the container logs.
+- **Load test results are from one laptop.** They show the behaviour under a one-second burst, not production capacity. See `docs/LOAD_TEST.md`.
