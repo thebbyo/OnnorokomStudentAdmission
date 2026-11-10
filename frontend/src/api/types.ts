@@ -22,6 +22,9 @@ export interface Hold {
   expiresAt: string;
   className?: string;
   studentId?: string;
+  /** Present once the admission is paid (owner only). */
+  admissionNo?: string;
+  confirmedAt?: string;
 }
 
 export interface MyHold {
@@ -30,4 +33,6 @@ export interface MyHold {
   className: string;
   status: HoldStatus;
   expiresAt: string;
+  admissionNo?: string;
+  confirmedAt?: string;
 }

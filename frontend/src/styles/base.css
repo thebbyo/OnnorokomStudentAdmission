@@ -942,3 +942,105 @@ html {
   color: var(--color-urgent);
   font-weight: 550;
 }
+
+/* ---- Admission slip --------------------------------------------------- */
+.slip-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.slip {
+  max-width: 640px;
+  display: grid;
+  gap: var(--space-5);
+  padding: var(--space-6);
+  background: var(--color-surface);
+  border: 2px solid var(--color-text);
+  border-radius: var(--radius-md);
+}
+
+.slip__head {
+  display: grid;
+  gap: var(--space-1);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--color-border-strong);
+}
+
+.slip__school {
+  font-size: var(--text-sm);
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.slip__title {
+  font-size: var(--text-xl);
+  font-weight: 650;
+}
+
+.slip__grid {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+}
+
+@media (min-width: 560px) {
+  .slip__grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.slip__grid dt {
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+  font-weight: 550;
+}
+
+.slip__grid dd {
+  margin: 2px 0 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.slip__number {
+  font-size: var(--text-2xl);
+  letter-spacing: 0.02em;
+}
+
+.slip__note {
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+}
+
+/* Printing: just the slip, in black on white. */
+@media print {
+  body {
+    background: #fff;
+  }
+
+  .no-print,
+  .app-header,
+  .student-strip,
+  .connection-banner,
+  .skip-link {
+    display: none !important;
+  }
+
+  .page {
+    padding: 0;
+    max-width: none;
+  }
+
+  .slip {
+    border: 2px solid #000;
+    box-shadow: none;
+    break-inside: avoid;
+  }
+
+  a {
+    color: #000;
+    text-decoration: none;
+  }
+}
