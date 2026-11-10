@@ -11,6 +11,8 @@ A burst of **2,001 applications** (2,000 parents plus one extra arrival from the
 
 If any of these fail, the k6 run exits non-zero. The thresholds are in `load/apply-burst.js`.
 
+Response times are reported in the k6 summary but are not a pass/fail gate, because they depend on the machine. The first CI run on GitHub's shared runner measured a p95 of about 3.5 s (slower than this laptop); the correctness results were the same.
+
 ## How to run it (Docker only)
 
 ```bash
