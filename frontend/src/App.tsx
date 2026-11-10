@@ -1,12 +1,15 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { ConnectionBanner } from './components/ConnectionBanner';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { Layout } from './components/Layout';
+import { ClassListPage } from './pages/ClassListPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { StudentProvider } from './state/StudentContext';
 
 export function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<h1>Classes</h1>} />
+      <Route path="/" element={<ClassListPage />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
@@ -14,12 +17,14 @@ export function AppRoutes() {
 
 export function App() {
   return (
-    <StudentProvider>
-      <BrowserRouter>
-        <Layout>
-          <AppRoutes />
-        </Layout>
-      </BrowserRouter>
-    </StudentProvider>
+    <ErrorBoundary>
+      <StudentProvider>
+        <BrowserRouter>
+          <Layout banner={<ConnectionBanner />}>
+            <AppRoutes />
+          </Layout>
+        </BrowserRouter>
+      </StudentProvider>
+    </ErrorBoundary>
   );
 }

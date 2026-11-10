@@ -551,3 +551,114 @@ a:hover {
     animation-iteration-count: 1 !important;
   }
 }
+
+/* ---- Class list ------------------------------------------------------- */
+.freshness {
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+  min-height: 1.5em;
+}
+
+.page__notice {
+  margin-bottom: var(--space-4);
+}
+
+.class-grid {
+  display: grid;
+  gap: var(--space-4);
+}
+
+@media (min-width: 720px) {
+  .class-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.class-card {
+  display: grid;
+  gap: var(--space-3);
+  align-content: start;
+  min-width: 0;
+}
+
+.class-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.class-card__name {
+  font-size: var(--text-lg);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.class-card__numbers {
+  display: grid;
+  gap: 2px;
+}
+
+.class-card__available {
+  font-size: var(--text-base);
+}
+
+.class-card__breakdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+}
+
+.legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.legend--confirmed::before {
+  background: var(--color-primary);
+}
+
+.legend--held::before {
+  background: var(--color-held);
+}
+
+.class-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  margin-top: var(--space-1);
+}
+
+/* ---- Seat bar ---------------------------------------------------------- */
+.seatbar {
+  display: flex;
+  height: 12px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--color-track);
+}
+
+.seatbar__segment {
+  display: block;
+  height: 100%;
+  transition: width var(--dur-slow) var(--ease-out);
+}
+
+.seatbar__segment--confirmed {
+  background: var(--color-primary);
+}
+
+.seatbar__segment--held {
+  background: var(--color-held);
+}

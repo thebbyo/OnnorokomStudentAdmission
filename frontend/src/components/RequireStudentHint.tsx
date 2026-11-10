@@ -2,7 +2,7 @@
 export function RequireStudentHint({ action }: { action: string }) {
   return (
     <p className="inline-hint" role="note">
-      Enter the student&rsquo;s birth registration number above to {action}.
+      Enter the student's birth registration number above to {action}.
     </p>
   );
 }
