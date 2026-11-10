@@ -149,6 +149,14 @@ public class AdmissionService(AdmissionDbContext db, AdmissionOptions options)
         }
     }
 
+    /// <summary>
+    /// Sweeper step. Needs no class lock: HELD → EXPIRED only frees seats, and confirm/cancel lock the hold
+    /// row, so a racing confirm either commits first (row no longer HELD) or sees EXPIRED.
+    /// </summary>
+    public Task<int> ExpireStaleAsync() =>
+        db.Database.ExecuteSqlRawAsync(
+            "UPDATE holds SET status = 'EXPIRED' WHERE status = 'HELD' AND expires_at <= clock_timestamp()");
+
     /// <summary>HELD past its expiry is EXPIRED, whether or not the sweeper has written that yet.</summary>
     public static HoldStatus EffectiveStatus(Hold hold, DateTime dbNow) =>
         hold.Status == HoldStatus.HELD && hold.ExpiresAt <= dbNow ? HoldStatus.EXPIRED : hold.Status;

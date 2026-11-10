@@ -13,6 +13,7 @@ builder.Services.AddDbContext<AdmissionDbContext>(o =>
     o.UseNpgsql(builder.Configuration.GetConnectionString("Default")
         ?? "Host=localhost;Port=5432;Database=admission;Username=admission;Password=admission"));
 builder.Services.AddScoped<AdmissionService>();
+builder.Services.AddHostedService<ExpirySweeper>();
 
 builder.Services.AddCors(cors => cors.AddDefaultPolicy(policy => policy
     .WithOrigins(options.CorsOrigins)
