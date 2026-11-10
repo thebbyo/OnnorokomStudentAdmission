@@ -14,11 +14,14 @@ import { useNow } from '../hooks/useNow';
 import { usePolling } from '../hooks/usePolling';
 import { activeHoldsByClass } from '../lib/holds';
 import { useStudent } from '../state/StudentContext';
+import { t } from '../i18n';
+import { useLocale } from '../i18n/useLocale';
 
 const number = new Intl.NumberFormat('en-US');
 
 export function ClassListPage() {
-  useDocumentTitle('Classes');
+  useLocale();
+  useDocumentTitle(t('nav.classes'));
   const classes = usePolling(listClasses, 3000);
   const myHolds = useMyHolds();
   const { studentId } = useStudent();
@@ -28,14 +31,20 @@ export function ClassListPage() {
   const active = activeHoldsByClass(myHolds.data);
 
   const secondsAgo = classes.lastUpdated ? Math.max(0, Math.round((now - classes.lastUpdated) / 1000)) : null;
-  const freshness = !online ? 'Reconnecting…' : secondsAgo === null ? '' : secondsAgo < 2 ? 'Updated just now' : `Updated ${secondsAgo}s ago`;
+  const freshness = !online
+    ? t('classes.reconnecting')
+    : secondsAgo === null
+      ? ''
+      : secondsAgo < 2
+        ? t('classes.updatedNow')
+        : t('classes.updatedAgo', { seconds: secondsAgo });
 
   return (
     <>
       <div className="page__header">
         <div>
-          <h1>Classes open for admission</h1>
-          <p className="page__lede">First come, first served. Seats update every few seconds.</p>
+          <h1>{t('classes.title')}</h1>
+          <p className="page__lede">{t('classes.lede')}</p>
         </div>
         <p className="freshness tabular" aria-hidden={online ? 'true' : undefined}>
           {freshness}
@@ -48,7 +57,7 @@ export function ClassListPage() {
 
       {!studentId && classes.data && classes.data.length > 0 && (
         <div className="notice notice--info page__notice">
-          <RequireStudentHint action="apply" />
+          <RequireStudentHint message="hint.applyNeedsStudent" />
         </div>
       )}
 
@@ -60,13 +69,13 @@ export function ClassListPage() {
         </div>
       ) : !classes.data ? (
         <div className="notice notice--error" role="alert">
-          <p className="notice__title">The class list could not be loaded.</p>
+          <p className="notice__title">{t('classes.loadError')}</p>
           <p>{friendlyError(classes.error)}</p>
         </div>
       ) : classes.data.length === 0 ? (
         <div className="empty">
-          <h2>No classes are open for admission yet.</h2>
-          <p>The school admin adds classes and their seat counts. They will appear here automatically.</p>
+          <h2>{t('classes.empty.title')}</h2>
+          <p>{t('classes.empty.body')}</p>
           <Link className="btn btn-secondary" to="/admin">
             Create a class (school admin)
           </Link>
@@ -128,7 +137,7 @@ function ClassCard({
         <h2 id={headingId} className="class-card__name">
           {item.name}
         </h2>
-        {full && <span className="badge badge--full">Full</span>}
+        {full && <span className="badge badge--full">{t('classes.full')}</span>}
       </div>
 
       <SeatBar total={item.totalSeats} held={item.heldSeats} confirmed={item.confirmedSeats} />
@@ -136,12 +145,12 @@ function ClassCard({
       <div className="class-card__numbers tabular">
         <p className="class-card__available">
           <strong>
-            {number.format(item.availableSeats)} of {number.format(item.totalSeats)} available
+            {t('classes.available', { available: number.format(item.availableSeats), total: number.format(item.totalSeats) })}
           </strong>
         </p>
         <p className="class-card__breakdown">
-          <span className="legend legend--confirmed">{number.format(item.confirmedSeats)} confirmed</span>
-          <span className="legend legend--held">{number.format(item.heldSeats)} on hold</span>
+          <span className="legend legend--confirmed">{t('classes.confirmed', { count: number.format(item.confirmedSeats) })}</span>
+          <span className="legend legend--held">{t('classes.onHold', { count: number.format(item.heldSeats) })}</span>
         </p>
       </div>
 
@@ -155,10 +164,10 @@ function ClassCard({
         {activeHold ? (
           <>
             <span className={`badge badge--${activeHold.status === 'CONFIRMED' ? 'confirmed' : 'held'}`}>
-              {activeHold.status === 'CONFIRMED' ? 'Admission confirmed' : 'Seat on hold'}
+              {activeHold.status === 'CONFIRMED' ? t('classes.badge.confirmed') : t('classes.badge.onHold')}
             </span>
             <Link className="btn btn-secondary" to={`/holds/${activeHold.holdId}`}>
-              View your application
+              {t('classes.viewApplication')}
             </Link>
           </>
         ) : (
@@ -169,12 +178,12 @@ function ClassCard({
             onClick={apply}
             aria-describedby={full ? `${headingId}-full` : undefined}
           >
-            {applying ? 'Applying…' : 'Apply'}
+            {applying ? t('classes.applying') : t('classes.apply')}
           </button>
         )}
         {full && !activeHold && (
           <p id={`${headingId}-full`} className="inline-hint">
-            All seats are taken. A seat may open again if a hold expires.
+            {t('classes.fullHint')}
           </p>
         )}
       </div>

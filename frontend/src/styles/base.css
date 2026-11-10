@@ -1044,3 +1044,20 @@ html {
     text-decoration: none;
   }
 }
+
+/* Bangla pages: Public Sans has no Bengali glyphs, so use a Bengali system font (Mac, Windows, Android) first. */
+html:lang(bn) body {
+  font-family: 'Kohinoor Bangla', 'Nirmala UI', 'Noto Sans Bengali', 'Bangla Sangam MN', var(--font-sans);
+  line-height: 1.7;
+}
+
+.locale-toggle {
+  min-width: 96px;
+}
+
+.app-header__right {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+}

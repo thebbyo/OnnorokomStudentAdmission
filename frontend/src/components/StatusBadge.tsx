@@ -1,13 +1,10 @@
 import type { HoldStatus } from '../api/types';
+import { t } from '../i18n';
+import { useLocale } from '../i18n/useLocale';
 
-const LABELS: Record<HoldStatus, string> = {
-  HELD: 'On hold',
-  CONFIRMED: 'Confirmed',
-  EXPIRED: 'Expired',
-  CANCELLED: 'Cancelled',
-};
 
 /** Status as text plus colour plus a shape, so it never relies on colour alone. */
 export function StatusBadge({ status }: { status: HoldStatus }) {
-  return <span className={`badge badge--${status.toLowerCase()}`}>{LABELS[status]}</span>;
+  useLocale();
+  return <span className={`badge badge--${status.toLowerCase()}`}>{t(`hold.status.${status}`)}</span>;
 }

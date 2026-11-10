@@ -11,11 +11,14 @@ import { useCountdown } from '../hooks/useCountdown';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { usePolling } from '../hooks/usePolling';
 import { useStudent } from '../state/StudentContext';
+import { t } from '../i18n';
+import { useLocale } from '../i18n/useLocale';
 
 const URGENT_MS = 60_000;
 const timeFormat = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' });
 
 export function HoldPage() {
+  useLocale();
   const { holdId = '' } = useParams();
   const { studentId } = useStudent();
   const navigate = useNavigate();
@@ -55,16 +58,16 @@ export function HoldPage() {
     const missing = hold.error instanceof ApiError && ['HOLD_NOT_FOUND', 'INVALID_ID'].includes(hold.error.code);
     return (
       <div className="empty" role={missing ? undefined : 'alert'}>
-        <h1>{missing ? 'Application not found' : 'This application could not be loaded'}</h1>
+        <h1>{missing ? t('hold.notFound.title') : t('hold.loadError.title')}</h1>
         <p>{friendlyError(hold.error)}</p>
         <Link className="btn btn-secondary" to="/me">
-          Go to My applications
+          {t('hold.goToMine')}
         </Link>
       </div>
     );
   }
 
-  const className = data.className ?? 'Your application';
+  const className = data.className ?? t('hold.fallbackName');
   const someoneElse = Boolean(studentId && data.studentId && data.studentId !== studentId);
   const urgent = status === 'HELD' && countdown.remainingMs <= URGENT_MS;
 
@@ -123,7 +126,7 @@ export function HoldPage() {
     <>
       <div className="page__header">
         <div className="hold-title">
-          <p className="hold-title__kicker">Application</p>
+          <p className="hold-title__kicker">{t('hold.kicker')}</p>
           <h1 className="hold-title__name">{className}</h1>
         </div>
         {status && <StatusBadge status={status} />}
@@ -137,19 +140,18 @@ export function HoldPage() {
         {status === 'HELD' && (
           <div className={`countdown${urgent ? ' countdown--urgent' : ''}`}>
             <p id="countdown-label" className="countdown__label">
-              Time left to pay
+              {t('hold.timeLeft')}
             </p>
             <p role="timer" aria-labelledby="countdown-label" aria-live="off" className="countdown__value tabular">
               {countdown.mmss}
             </p>
             {urgent ? (
               <p className="countdown__note countdown__note--urgent">
-                <strong>Less than a minute left.</strong> Pay now to keep this seat.
+                <strong>{t('hold.urgent')}</strong> {t('hold.urgentBody')}
               </p>
             ) : (
               <p className="countdown__note">
-                Your seat is held until {timeFormat.format(new Date(data.expiresAt))}. If the fee is not paid by then,
-                the seat goes to the next applicant.
+                {t('hold.heldUntil', { time: timeFormat.format(new Date(data.expiresAt)) })}
               </p>
             )}
           </div>
@@ -157,23 +159,30 @@ export function HoldPage() {
 
         {status === 'CONFIRMED' && (
           <div className="outcome outcome--success">
-            <h2>Admission confirmed</h2>
-            <p>The admission fee is paid. The seat in {className} is confirmed for this student.</p>
-            <Link to="/me">See all applications</Link>
+            <h2>{t('hold.confirmed.title')}</h2>
+            <p>{t('hold.confirmed.body', { className })}</p>
+            {data.admissionNo && (
+              <p>
+                {t('hold.admissionNumber')}: <strong className="tabular">{data.admissionNo}</strong>
+              </p>
+            )}
+            <p>
+              <Link to={`/holds/${holdId}/slip`}>{t('hold.viewSlip')}</Link> · <Link to="/me">{t('hold.allApplications')}</Link>
+            </p>
           </div>
         )}
 
         {status === 'EXPIRED' && (
           <div className="outcome outcome--danger">
-            <h2>Time ran out</h2>
-            <p>The fee was not paid in time, so the seat was released. This application can no longer be paid.</p>
+            <h2>{t('hold.expired.title')}</h2>
+            <p>{t('hold.expired.body')}</p>
           </div>
         )}
 
         {status === 'CANCELLED' && (
           <div className="outcome">
-            <h2>Application cancelled</h2>
-            <p>The seat was released for other applicants.</p>
+            <h2>{t('hold.cancelled.title')}</h2>
+            <p>{t('hold.cancelled.body')}</p>
           </div>
         )}
 
@@ -197,7 +206,7 @@ export function HoldPage() {
               disabled={!studentId || someoneElse || paying || status !== 'HELD'}
               onClick={pay}
             >
-              {paying ? 'Paying…' : 'Pay admission fee'}
+              {paying ? t('hold.paying') : t('hold.pay')}
             </button>
             {status === 'HELD' && !cancelOpen && (
               <button
@@ -206,7 +215,7 @@ export function HoldPage() {
                 disabled={!studentId || someoneElse || paying}
                 onClick={() => setCancelOpen(true)}
               >
-                Cancel application
+                {t('hold.cancel')}
               </button>
             )}
           </div>
@@ -214,17 +223,17 @@ export function HoldPage() {
 
         {status === 'HELD' && cancelOpen && (
           <ConfirmDialog
-            title="Cancel this application?"
-            body="The seat will be released right away and may go to another student. This can't be undone."
-            confirmLabel="Yes, cancel"
-            cancelLabel="Keep my seat"
+            title={t('hold.cancelDialog.title')}
+            body={t('hold.cancelDialog.body')}
+            confirmLabel={t('hold.cancelDialog.confirm')}
+            cancelLabel={t('hold.cancelDialog.keep')}
             busy={cancelling}
             onConfirm={cancel}
             onCancel={() => setCancelOpen(false)}
           />
         )}
 
-        {!studentId && status === 'HELD' && <RequireStudentHint action="pay or cancel" />}
+        {!studentId && status === 'HELD' && <RequireStudentHint message="hint.payNeedsStudent" />}
 
         {ended && (
           <div className="hold-actions">
@@ -235,24 +244,24 @@ export function HoldPage() {
                 disabled={!studentId || reapplying}
                 onClick={applyAgain}
               >
-                {reapplying ? 'Applying…' : 'Apply again'}
+                {reapplying ? t('classes.applying') : t('hold.applyAgain')}
               </button>
             )}
             {seats.data && seats.data.availableSeats <= 0 && (
-              <p className="inline-hint">Apply again isn&apos;t possible. This class is full right now.</p>
+              <p className="inline-hint">{t('hold.applyAgainFull')}</p>
             )}
             {!seats.data && seats.error !== undefined && (
               <p className="inline-hint" role="alert">
                 {friendlyError(seats.error)}
               </p>
             )}
-            {!studentId && <RequireStudentHint action="apply again" />}
+            {!studentId && <RequireStudentHint message="hint.applyNeedsStudent" />}
           </div>
         )}
       </section>
 
       <p className="hold-footer">
-        <Link to="/me">All my applications</Link> · <Link to="/">Class list</Link>
+        <Link to="/me">{t('hold.footer.mine')}</Link> · <Link to="/">{t('hold.footer.classes')}</Link>
       </p>
     </>
   );
@@ -271,17 +280,18 @@ function HoldSkeleton() {
   );
 }
 
-const ANNOUNCEMENTS: Partial<Record<HoldStatus, string>> = {
-  CONFIRMED: 'Admission confirmed.',
-  EXPIRED: 'Time ran out. The seat was released.',
-  CANCELLED: 'Application cancelled.',
-};
+function announce(status: HoldStatus | undefined): string {
+  if (status === 'CONFIRMED') return t('hold.confirmed.title') + '.';
+  if (status === 'EXPIRED') return t('hold.expired.title') + '. ' + t('hold.expired.body');
+  if (status === 'CANCELLED') return t('hold.cancelled.title') + '.';
+  return '';
+}
 
 function useStatusAnnouncement(status: HoldStatus | undefined): string {
   const previous = useRef<HoldStatus | undefined>(undefined);
   const [message, setMessage] = useState('');
   useEffect(() => {
-    if (previous.current && status && previous.current !== status) setMessage(ANNOUNCEMENTS[status] ?? '');
+    if (previous.current && status && previous.current !== status) setMessage(announce(status));
     previous.current = status;
   }, [status]);
   return message;

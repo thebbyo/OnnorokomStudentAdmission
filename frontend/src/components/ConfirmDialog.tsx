@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef } from 'react';
+import { t } from '../i18n';
 
 /**
  * Inline confirmation step (no modal): focus lands on the safe choice, Escape keeps things as they are.
@@ -47,7 +48,7 @@ export function ConfirmDialog({
           {cancelLabel}
         </button>
         <button type="button" className="btn btn-danger" onClick={onConfirm} disabled={busy}>
-          {busy ? 'Cancelling…' : confirmLabel}
+          {busy ? t('hold.cancelDialog.busy') : confirmLabel}
         </button>
       </div>
     </div>

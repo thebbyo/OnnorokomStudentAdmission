@@ -9,9 +9,12 @@ import { useMyHolds } from '../hooks/useMyHolds';
 import { useNow } from '../hooks/useNow';
 import { liveStatus } from '../lib/holds';
 import { useStudent } from '../state/StudentContext';
+import { t } from '../i18n';
+import { useLocale } from '../i18n/useLocale';
 
 export function MyApplicationsPage() {
-  useDocumentTitle('My applications');
+  useLocale();
+  useDocumentTitle(t('mine.title'));
   const { studentId } = useStudent();
   const holds = useMyHolds();
   useNow(1000); // re-group as held items run out
@@ -24,15 +27,15 @@ export function MyApplicationsPage() {
     <>
       <div className="page__header">
         <div>
-          <h1>My applications</h1>
-          <p className="page__lede">Every application for this student, newest first.</p>
+          <h1>{t('mine.title')}</h1>
+          <p className="page__lede">{t('mine.lede')}</p>
         </div>
       </div>
 
       {!studentId ? (
         <div className="empty">
-          <h2>Who is applying?</h2>
-          <RequireStudentHint action="see applications" />
+          <h2>{t('mine.whoIsApplying')}</h2>
+          <RequireStudentHint message="mine.needStudent" />
         </div>
       ) : holds.loading ? (
         <div className="stack" aria-busy="true" aria-label="Loading applications">
@@ -45,29 +48,29 @@ export function MyApplicationsPage() {
         </div>
       ) : !holds.data ? (
         <div className="notice notice--error" role="alert">
-          <p className="notice__title">Your applications could not be loaded.</p>
+          <p className="notice__title">{t('mine.loadError')}</p>
           <p>{friendlyError(holds.error)}</p>
         </div>
       ) : items.length === 0 ? (
         <div className="empty">
-          <h2>No applications yet.</h2>
-          <p>Apply for a class to hold a seat. You then have a few minutes to pay the admission fee.</p>
+          <h2>{t('mine.none.title')}</h2>
+          <p>{t('mine.none.body')}</p>
           <Link className="btn btn-primary" to="/">
-            Browse classes
+            {t('mine.browse')}
           </Link>
         </div>
       ) : (
         <div className="stack app-groups">
-          <Group title="Active" empty="No active applications. Held seats and confirmed admissions appear here." items={active} />
-          <Group title="Past" empty="Nothing here yet." items={past} />
+          <Group id="active" title={t('mine.group.active')} empty={t('mine.group.activeEmpty')} items={active} />
+          <Group id="past" title={t('mine.group.past')} empty={t('mine.group.pastEmpty')} items={past} />
         </div>
       )}
     </>
   );
 }
 
-function Group({ title, empty, items }: { title: string; empty: string; items: MyHold[] }) {
-  const id = `group-${title.toLowerCase()}`;
+function Group({ id: key, title, empty, items }: { id: string; title: string; empty: string; items: MyHold[] }) {
+  const id = `group-${key}`;
   return (
     <section aria-labelledby={id} className="app-group">
       <h2 id={id} className="app-group__title">
@@ -96,7 +99,7 @@ function ApplicationRow({ hold }: { hold: MyHold }) {
           <StatusBadge status={hold.status} />
           {hold.status === 'HELD' && (
             <span className="app-row__timer tabular">
-              <span>{countdown.mmss}</span> left to pay
+              <span>{countdown.mmss}</span> {t('mine.leftToPay')}
             </span>
           )}
         </div>
@@ -104,9 +107,9 @@ function ApplicationRow({ hold }: { hold: MyHold }) {
       <Link
         className="btn btn-secondary btn-sm"
         to={`/holds/${hold.holdId}`}
-        aria-label={`${hold.status === 'HELD' ? 'Open to pay' : 'Open'}: ${hold.className}`}
+        aria-label={`${hold.status === 'HELD' ? t('mine.openToPay') : t('mine.open')}: ${hold.className}`}
       >
-        {hold.status === 'HELD' ? 'Open to pay' : 'Open'}
+        {hold.status === 'HELD' ? t('mine.openToPay') : t('mine.open')}
       </Link>
     </li>
   );

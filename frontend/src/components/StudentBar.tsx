@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { STUDENT_ID_LENGTH, isValidStudentId, sanitizeStudentIdInput } from '../lib/studentId';
+import { t } from '../i18n';
+import { useLocale } from '../i18n/useLocale';
 import { useStudent } from '../state/StudentContext';
 
 export function StudentBar() {
+  useLocale();
   const { studentId, setStudentId, clearStudentId } = useStudent();
   const [draft, setDraft] = useState('');
   const [focusRequested, setFocusRequested] = useState(false);
@@ -19,7 +22,7 @@ export function StudentBar() {
     return (
       <div className="student-bar student-bar--set">
         <p className="student-bar__current">
-          <span className="student-bar__label">Student</span>
+          <span className="student-bar__label">{t('student.label')}</span>
           <span className="student-bar__id">{studentId}</span>
         </p>
         <button
@@ -31,7 +34,7 @@ export function StudentBar() {
             setFocusRequested(true);
           }}
         >
-          Change student
+          {t('student.change')}
         </button>
       </div>
     );
@@ -41,10 +44,10 @@ export function StudentBar() {
   const remaining = STUDENT_ID_LENGTH - draft.length;
   const hint =
     draft.length === 0
-      ? 'Enter the 17-digit number to apply, pay, or see applications.'
+      ? t('student.hint.empty')
       : valid
-        ? 'All 17 digits entered. Press Save.'
-        : `${remaining} more ${remaining === 1 ? 'digit' : 'digits'} needed.`;
+        ? t('student.hint.complete')
+        : t('student.hint.more', { count: remaining });
 
   const onSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -54,7 +57,7 @@ export function StudentBar() {
   return (
     <form className="student-bar" onSubmit={onSubmit} noValidate>
       <label className="student-bar__field-label" htmlFor="student-id">
-        Student&rsquo;s birth registration number
+        {t('student.field')}
       </label>
       <div className="student-bar__row">
         <div className="student-bar__input-wrap">
@@ -75,7 +78,7 @@ export function StudentBar() {
           </span>
         </div>
         <button type="submit" className="btn btn-primary" disabled={!valid}>
-          Save
+          {t('student.save')}
         </button>
       </div>
       <p id="student-id-hint" className="student-bar__hint">
