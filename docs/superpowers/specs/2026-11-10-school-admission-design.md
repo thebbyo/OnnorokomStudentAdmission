@@ -107,6 +107,7 @@ Error body: `{ "error": "<CODE>", "message": "<human text>" }`.
 | 403 | `FORBIDDEN` |
 | 404 | `CLASS_NOT_FOUND`, `HOLD_NOT_FOUND`, `NOT_FOUND` (unknown route) |
 | 409 | `SEATS_FULL`, `ALREADY_APPLIED`, `HOLD_EXPIRED`, `HOLD_CANCELLED`, `HOLD_NOT_ACTIVE` |
+| 503 | `SERVICE_BUSY` (Npgsql pool or connect timeout under extreme bursts; the client retries) |
 | 500 | `INTERNAL` (only for genuine bugs; never for input) |
 
 The body is parsed manually from `JsonElement`/`JsonDocument`, so malformed JSON, wrong types (`"totalSeats": "abc"`, `1.5`, `true`), missing fields, and an empty body all map to 400 rather than relying on framework binding. Validation order: id format → header → body. CORS allows `CORS_ORIGINS` (comma-separated, default `http://localhost:3000`) and exposes the `Date` header.
