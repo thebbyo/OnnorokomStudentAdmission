@@ -86,5 +86,20 @@ services:
       context: ./frontend
       target: test
 
+  # Load test: 2,000 applicants for 120 seats in one burst. docker compose --profile load run --rm k6
+  k6:
+    profiles: ["load"]
+    image: grafana/k6:0.54.0
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      API_BASE_URL: http://backend:8080
+      SEATS: ${LOAD_SEATS:-120}
+      APPLICANTS: ${LOAD_APPLICANTS:-2000}
+    volumes:
+      - ./load:/scripts:ro
+    command: ["run", "/scripts/apply-burst.js"]
+
 volumes:
   pgdata:
