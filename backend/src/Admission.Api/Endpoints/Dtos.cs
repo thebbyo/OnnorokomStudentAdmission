@@ -21,6 +21,18 @@ public record CreateHoldResponse(string HoldId, string ClassId, string StudentId
         PublicId.Hold(v.Id), PublicId.Class(v.ClassId), v.StudentId, v.Status.ToString(), Utc.Format(v.ExpiresAt), v.ClassName);
 }
 
+public record HoldResponse(string HoldId, string ClassId, string Status, string ExpiresAt, string ClassName, string StudentId)
+{
+    public static HoldResponse From(HoldView v) => new(
+        PublicId.Hold(v.Id), PublicId.Class(v.ClassId), v.Status.ToString(), Utc.Format(v.ExpiresAt), v.ClassName, v.StudentId);
+}
+
+public record ConfirmResponse(string HoldId, string Status, string ClassId, string ExpiresAt)
+{
+    public static ConfirmResponse From(HoldView v) =>
+        new(PublicId.Hold(v.Id), v.Status.ToString(), PublicId.Class(v.ClassId), Utc.Format(v.ExpiresAt));
+}
+
 public static class Utc
 {
     /// <summary>UTC ISO-8601 with a literal Z, e.g. 2026-11-01T04:10:00Z.</summary>

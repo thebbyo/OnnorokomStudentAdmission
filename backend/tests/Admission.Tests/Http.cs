@@ -73,4 +73,10 @@ public static class HoldApi
         gate.SetResult();
         return await Task.WhenAll(tasks);
     }
+
+    public static Task<HttpResponseMessage> ConfirmAsync(this HttpClient client, string holdId, string? studentId) =>
+        client.SendAsync(new HttpRequestMessage(HttpMethod.Post, $"/holds/{holdId}/confirm").WithStudent(studentId));
+
+    public static Task<HttpResponseMessage> CancelAsync(this HttpClient client, string holdId, string? studentId) =>
+        client.SendAsync(new HttpRequestMessage(HttpMethod.Delete, $"/holds/{holdId}").WithStudent(studentId));
 }

@@ -93,6 +93,111 @@ public class AdmissionService(AdmissionDbContext db, AdmissionOptions options)
         return new HoldView(hold.Id, classId, schoolClass.Name, studentId, hold.Status, hold.ExpiresAt);
     }
 
+    public async Task<HoldView> GetHoldAsync(Guid holdId)
+    {
+        var row = await db.Holds.AsNoTracking()
+            .Where(h => h.Id == holdId)
+            .Select(h => new { Hold = h, ClassName = h.Class.Name })
+            .FirstOrDefaultAsync() ?? throw HoldNotFound();
+        return ToView(row.Hold, row.ClassName, await DbNowAsync());
+    }
+
+    public async Task<HoldView> ConfirmAsync(Guid holdId, string studentId)
+    {
+        var (tx, schoolClass, hold, now) = await LockForChangeAsync(holdId, studentId);
+        await using var _ = tx;
+
+        switch (EffectiveStatus(hold, now))
+        {
+            case HoldStatus.CONFIRMED:
+                break; // idempotent: confirmedSeats does not move again
+            case HoldStatus.CANCELLED:
+                throw ApiException.Conflict(ErrorCodes.HoldCancelled, "This application was cancelled.");
+            case HoldStatus.EXPIRED:
+                await PersistExpiredAsync(hold, tx);
+                throw HoldExpired();
+            default:
+                hold.Status = HoldStatus.CONFIRMED;
+                hold.ConfirmedAt = now;
+                await db.SaveChangesAsync();
+                break;
+        }
+
+        await tx.CommitAsync();
+        return ToView(hold, schoolClass.Name, now);
+    }
+
+    public async Task CancelAsync(Guid holdId, string studentId)
+    {
+        var (tx, _, hold, now) = await LockForChangeAsync(holdId, studentId);
+        await using var _ = tx;
+
+        switch (EffectiveStatus(hold, now))
+        {
+            case HoldStatus.HELD:
+                hold.Status = HoldStatus.CANCELLED;
+                hold.CancelledAt = now;
+                await db.SaveChangesAsync();
+                await tx.CommitAsync();
+                return;
+            case HoldStatus.EXPIRED:
+                await PersistExpiredAsync(hold, tx);
+                throw HoldExpired();
+            default:
+                throw ApiException.Conflict(ErrorCodes.HoldNotActive,
+                    "Only an application that is still on hold can be cancelled.");
+        }
+    }
+
+    /// <summary>HELD past its expiry is EXPIRED, whether or not the sweeper has written that yet.</summary>
+    public static HoldStatus EffectiveStatus(Hold hold, DateTime dbNow) =>
+        hold.Status == HoldStatus.HELD && hold.ExpiresAt <= dbNow ? HoldStatus.EXPIRED : hold.Status;
+
+    /// <summary>
+    /// Opens the transaction for confirm/cancel and locks class row, then hold row — the same order as
+    /// CreateHoldAsync, so these operations can never deadlock each other. A confirm racing a cancel
+    /// or the sweeper is decided exactly once.
+    /// </summary>
+    private async Task<(Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction Tx, SchoolClass Class, Hold Hold, DateTime Now)>
+        LockForChangeAsync(Guid holdId, string studentId)
+    {
+        var classId = await db.Holds.AsNoTracking().Where(h => h.Id == holdId)
+            .Select(h => (Guid?)h.ClassId).FirstOrDefaultAsync() ?? throw HoldNotFound();
+
+        var tx = await db.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted);
+        try
+        {
+            var schoolClass = await LockClassAsync(classId) ?? throw HoldNotFound();
+            var hold = (await db.Holds.FromSqlInterpolated($"SELECT * FROM holds WHERE id = {holdId} FOR UPDATE")
+                .ToListAsync()).Single();
+            if (hold.StudentId != studentId)
+                throw ApiException.Forbidden("This application belongs to a different student.");
+            return (tx, schoolClass, hold, await DbNowAsync());
+        }
+        catch
+        {
+            await tx.DisposeAsync();
+            throw;
+        }
+    }
+
+    private async Task PersistExpiredAsync(Hold hold, Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction tx)
+    {
+        if (hold.Status == HoldStatus.EXPIRED) return;
+        hold.Status = HoldStatus.EXPIRED;
+        await db.SaveChangesAsync();
+        await tx.CommitAsync();
+    }
+
+    private static HoldView ToView(Hold hold, string className, DateTime dbNow) =>
+        new(hold.Id, hold.ClassId, className, hold.StudentId, EffectiveStatus(hold, dbNow), hold.ExpiresAt);
+
+    private static ApiException HoldNotFound() =>
+        ApiException.NotFound(ErrorCodes.HoldNotFound, "No application exists with that id.");
+
+    private static ApiException HoldExpired() =>
+        ApiException.Conflict(ErrorCodes.HoldExpired, "This seat hold has expired and the seat was released.");
+
     /// <summary>Row lock on the class. Every seat-changing transaction takes this lock first.</summary>
     private async Task<SchoolClass?> LockClassAsync(Guid id) =>
         (await db.Classes.FromSqlInterpolated($"SELECT * FROM classes WHERE id = {id} FOR UPDATE").ToListAsync())
