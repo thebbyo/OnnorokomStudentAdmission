@@ -30,6 +30,22 @@ services:
       - "8080:8080"
     restart: unless-stopped
 
+  # Bonus: a second API process on :8081 sharing the same database.
+  # docker compose --profile bonus up -d   (then ./scripts/two-process-race.sh)
+  backend2:
+    profiles: ["bonus"]
+    build: ./backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__Default: "Host=db;Port=5432;Database=admission;Username=admission;Password=admission;Maximum Pool Size=50;Timeout=30"
+      HOLD_DURATION_SECONDS: ${HOLD_DURATION_SECONDS:-600}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+    ports:
+      - "8081:8080"
+    restart: unless-stopped
+
   # docker compose --profile tests run --rm --build backend-tests
   backend-tests:
     profiles: ["tests"]
