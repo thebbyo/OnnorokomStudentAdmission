@@ -102,6 +102,17 @@ public class AdmissionService(AdmissionDbContext db, AdmissionOptions options)
         return ToView(row.Hold, row.ClassName, await DbNowAsync());
     }
 
+    public async Task<IReadOnlyList<HoldView>> ListStudentHoldsAsync(string studentId)
+    {
+        var rows = await db.Holds.AsNoTracking()
+            .Where(h => h.StudentId == studentId)
+            .OrderByDescending(h => h.CreatedAt).ThenByDescending(h => h.Id)
+            .Select(h => new { Hold = h, ClassName = h.Class.Name })
+            .ToListAsync();
+        var now = await DbNowAsync();
+        return rows.Select(r => ToView(r.Hold, r.ClassName, now)).ToList();
+    }
+
     public async Task<HoldView> ConfirmAsync(Guid holdId, string studentId)
     {
         var (tx, schoolClass, hold, now) = await LockForChangeAsync(holdId, studentId);

@@ -33,6 +33,12 @@ public record ConfirmResponse(string HoldId, string Status, string ClassId, stri
         new(PublicId.Hold(v.Id), v.Status.ToString(), PublicId.Class(v.ClassId), Utc.Format(v.ExpiresAt));
 }
 
+public record MyHoldResponse(string HoldId, string ClassId, string ClassName, string Status, string ExpiresAt)
+{
+    public static MyHoldResponse From(HoldView v) => new(
+        PublicId.Hold(v.Id), PublicId.Class(v.ClassId), v.ClassName, v.Status.ToString(), Utc.Format(v.ExpiresAt));
+}
+
 public static class Utc
 {
     /// <summary>UTC ISO-8601 with a literal Z, e.g. 2026-11-01T04:10:00Z.</summary>
