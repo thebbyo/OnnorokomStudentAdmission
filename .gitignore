@@ -1,0 +1,34 @@
+# Confidential brief: must never be public
+Asst_Software_Engineer_Project_Assignment.pdf
+*.pdf
+admission-prompt.md
+
+# Local AI tooling
+agent/
+.agents/
+.claude/
+skills-lock.json
+
+# macOS / exFAT metadata
+._*
+.DS_Store
+
+# .NET
+bin/
+obj/
+*.user
+TestResults/
+
+# Node
+node_modules/
+dist/
+coverage/
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Editors
+.vscode/
+.idea/
